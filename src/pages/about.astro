@@ -307,14 +307,6 @@ let fileCount = 0;
   .peek-card video[controls] { pointer-events: auto; } /* reduced motion: the play button must be reachable */
   .peek-card figcaption { margin-top: 7px; text-align: center; font: italic 13px var(--serif); color: #4a4234; }
   @media (prefers-reduced-motion: reduce) { .peek-card { transition: none; } }
-  /* Kitchen's logo and wordmark (written as a span in about.md), from their image: two masks,
-     so the ink follows the theme and the dot on the i takes the site's red. */
-  /* Sized so the wordmark's capital K (37 of 70 px) matches the text's capitals; the 16 px under its
-     baseline is the vertical-align, so it sits on the line like a word. */
-  .prose :global(.kitchen) { position: relative; display: inline-block; height: 1.25em; aspect-ratio: 281 / 70; vertical-align: -0.29em; }
-  .prose :global(.kitchen::before), .prose :global(.kitchen::after) { content: ''; position: absolute; inset: 0; }
-  .prose :global(.kitchen::before) { background: var(--ink); -webkit-mask: url('/kitchen-ink.png') center / contain no-repeat; mask: url('/kitchen-ink.png') center / contain no-repeat; }
-  .prose :global(.kitchen::after) { background: var(--accent); -webkit-mask: url('/kitchen-dot.png') center / contain no-repeat; mask: url('/kitchen-dot.png') center / contain no-repeat; }
   /* Typing on scroll (see the script): one word every 35 ms. */
   .prose :global(.typing .w) { opacity: 0; }
   .prose :global(.typed .w) { opacity: 1; transition: opacity 0.08s calc(var(--i) * 35ms); }

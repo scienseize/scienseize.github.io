@@ -7,6 +7,7 @@ blurb: An early-warning dashboard for Philippine hospital wards.
 images: [/projects/biosentry.png, /projects/biosentry-ward-sim.png, /projects/biosentry-patch.webp]
 cover: /projects/biosentry-patch.webp
 tools: [FastAPI, React, TypeScript]
+role: Developer, with the Kitchen team
 links:
   - { label: Dashboard, href: "https://github.com/kitchen-station/BioSentry-Intelligence" }
   - { label: Ward sim, href: "https://github.com/kitchen-station/biosentry-ward-sim" }

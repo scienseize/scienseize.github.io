@@ -171,6 +171,15 @@ const links = [
   @media (prefers-reduced-motion: reduce) {
     :is(main, footer ul) a:not([class], :is(h1, h2, h3, nav, .meta, .timetable) a) { transition: none; }
   }
+  /* Kitchen's logo and wordmark, from their image: two masks, so the ink follows the theme and the
+     dot on the i takes the site's red. Write it as <span class="kitchen" role="img" aria-label="Kitchen">.
+     Sized so the wordmark's capital K (37 of 70 px) matches the text's capitals; the 16 px under its
+     baseline is the vertical-align, so it sits on the line like a word. On fixed light paper, set
+     --kitchen-ink and --kitchen-dot. */
+  .kitchen { position: relative; display: inline-block; height: 1.25em; aspect-ratio: 281 / 70; vertical-align: -0.29em; }
+  .kitchen::before, .kitchen::after { content: ''; position: absolute; inset: 0; }
+  .kitchen::before { background: var(--kitchen-ink, var(--ink)); -webkit-mask: url('/kitchen-ink.png') center / contain no-repeat; mask: url('/kitchen-ink.png') center / contain no-repeat; }
+  .kitchen::after { background: var(--kitchen-dot, var(--accent)); -webkit-mask: url('/kitchen-dot.png') center / contain no-repeat; mask: url('/kitchen-dot.png') center / contain no-repeat; }
   /* Anything clickable turns the pointer into the detective's magnifying glass.
      !important so it also beats the pointer and zoom-in cursors set on single parts. */
   :is(a, button, summary, [role='button']) { cursor: url('/cursor-magnifier.svg') 12 12, pointer !important; }

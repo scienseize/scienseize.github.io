@@ -166,7 +166,12 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       <section class="particulars" aria-label="Particulars of the case">
         <p class="particulars-head">Particulars of the Case</p>
         <dl>
-          {p.role && <div><dt>Role</dt><dd>{p.role}</dd></div>}
+          {p.role && (
+            <div><dt>Role</dt><dd>
+              {/* "Kitchen" in a role is set as Kitchen's own wordmark */}
+              {p.role.split(/(Kitchen)/).map((part) => part === 'Kitchen' ? <span class="kitchen" role="img" aria-label="Kitchen" /> : part)}
+            </dd></div>
+          )}
           <div><dt>Instruments</dt><dd>{p.tools.join(' · ')}</dd></div>
           <div><dt>Year</dt><dd>{p.year}</dd></div>
           {p.status && <div><dt>Status</dt><dd>{p.status}</dd></div>}
@@ -696,6 +701,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   /* Particulars, set like a table of contents with dotted leaders. */
   .particulars { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgb(42 38 32 / 0.25); }
+  /* The sheet is always light paper, so the Kitchen wordmark uses the sheet's ink, not the theme's. */
+  .particulars { --kitchen-ink: #2a2620; --kitchen-dot: #9e2b25; }
   .particulars-head { margin: 0 0 14px; text-align: center; font: 500 11px var(--serif); letter-spacing: 0.3em; text-transform: uppercase; color: #6b5f4b; }
   .particulars dl { margin: 0; }
   .particulars div { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font: 15px var(--serif); }

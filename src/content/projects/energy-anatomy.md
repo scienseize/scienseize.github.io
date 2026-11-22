@@ -6,7 +6,7 @@ year: '2026'
 blurb: Where does the energy go when a transformer trains?
 images: [/projects/energy-anatomy-waste-capability.webp]
 tools: [PyTorch, Zeus, NVML, Python]
-role: Researcher
+role: Ran experiments, and co-author with Jude Joseph Garcia Jr
 href: https://github.com/scienseize/energy-anatomy
 status: Best Paper and Student Best Paper Presentation Awards, I-RISE Conference 2026
 award: Best paper
