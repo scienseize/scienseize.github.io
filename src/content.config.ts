@@ -27,6 +27,7 @@ const projects = defineCollection({
     href: z.string().url().optional(), // source code or live link
     // Paths in public/, e.g. /projects/palmcards.webp. The card shows the first one; the sheet shows all.
     images: z.array(z.string()).default([]),
+    cover: z.string().optional(), // card image when it should not be the first of `images`
     abstract: z.string().optional(), // shown as a paper page instead of a screenshot
   }),
 });

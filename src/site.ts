@@ -2,7 +2,7 @@
 // Projects live in src/content/projects/*.md. Photos for the home page go in public/.
 
 export const site = {
-  name: 'Bill Alcantara',
+  name: 'Bill C. Alcantara',
   // The home page tagline: "currently <one of these>." It picks a new one every few seconds.
   doing: [
     'optimizing models',
@@ -19,6 +19,9 @@ export const site = {
     'building agents',
   ],
   email: 'billalcantara.dev@gmail.com',
+  // The footer clock shows the time here. timeZone is an IANA name.
+  place: 'Manila, PH',
+  timeZone: 'Asia/Manila',
   socials: [
     { label: 'GitHub', href: 'https://github.com/scienseize' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/billalc' },
@@ -30,7 +33,7 @@ export const site = {
 export const about = {
   photo: '/about/portrait.webp', // in public/. Empty shows a placeholder.
   facts: [
-    { label: 'Current', value: 'Senior Data Science Student, iACADEMY' },
+    { label: 'Current', value: 'Senior Data Science Student, Engineer' },
     { label: 'Based', value: 'Manila, PH (UTC+8)' },
   ],
 };

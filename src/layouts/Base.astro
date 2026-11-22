@@ -2,6 +2,12 @@
 import { site } from '../site';
 interface Props { title?: string; description?: string }
 const { title, description = `${site.name}: data science student building AI applications end to end.` } = Astro.props;
+const links = [
+  { href: '/about/', label: 'About' },
+  { href: '/#exhibits', label: 'Projects' },
+  { href: '/#library', label: 'Library' },
+  { href: '/#writing', label: 'Writing' },
+];
 ---
 <!doctype html>
 <html lang="en">
@@ -30,10 +36,7 @@ const { title, description = `${site.name}: data science student building AI app
     <header class="top">
       <a class="mark" href="/" aria-label={`${site.name}, home`}>B<span>.</span>C<span>.</span>A<span>.</span></a>
       <nav>
-        <a href="/about/">About</a>
-        <a href="/#exhibits">Projects</a>
-        <a href="/#library">Library</a>
-        <a href="/#writing">Writing</a>
+        {links.map((l) => <a href={l.href}>{l.label}</a>)}
         <button id="theme" type="button" aria-label="Toggle dark mode">◐</button>
       </nav>
     </header>
@@ -41,21 +44,64 @@ const { title, description = `${site.name}: data science student building AI app
     <main><slot /></main>
 
     <footer>
-      <div>
-        <p>© {new Date().getFullYear()} {site.name}</p>
+      <div class="foot-row">
+        <nav aria-label="Footer">
+          <a href="/">Home</a>
+          {links.map((l) => <a href={l.href}>{l.label}</a>)}
+        </nav>
+        <p class="clock">{site.place} · <time id="clock" data-tz={site.timeZone}></time></p>
       </div>
-      <ul>
-        <li><a href={`mailto:${site.email}`}>Email</a></li>
-        {site.socials.filter((s) => s.href).map((s) => <li><a href={s.href} rel="me">{s.label} ↗</a></li>)}
-      </ul>
+      <div class="foot-row">
+        <p>© {new Date().getFullYear()} {site.name}</p>
+        <ul>
+          <li><a href={`mailto:${site.email}`}>Email</a></li>
+          {site.socials.filter((s) => s.href).map((s) => <li><a href={s.href} rel="me">{s.label} ↗</a></li>)}
+        </ul>
+      </div>
     </footer>
 
+    <div class="flashlight" aria-hidden="true"></div>
     <script is:inline>
+      // Footer clock: the local time where I am, updated every second.
+      const clock = document.getElementById('clock');
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: clock.dataset.tz, timeStyle: 'medium' });
+      const zone = new Intl.DateTimeFormat('en-US', { timeZone: clock.dataset.tz, timeZoneName: 'shortOffset' });
+      const tick = () => {
+        const now = new Date();
+        clock.textContent = `${fmt.format(now)} ${zone.formatToParts(now).find((p) => p.type === 'timeZoneName').value.replace('GMT', 'UTC')}`;
+        clock.dateTime = now.toISOString();
+      };
+      tick();
+      setInterval(tick, 1000);
+
       document.getElementById('theme').addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = next;
         try { localStorage.setItem('theme', next); } catch {}
       });
+
+      // Flashlight: a soft, warm beam follows the mouse with a slight lag, like a detective's torch.
+      // Mouse only. With reduced motion it follows at once, with no lag.
+      {
+        const lamp = document.querySelector('.flashlight');
+        if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+          const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+          let x = 0, y = 0, tx = 0, ty = 0, raf = 0;
+          const paint = () => { lamp.style.setProperty('--fx', `${x}px`); lamp.style.setProperty('--fy', `${y}px`); };
+          const follow = () => {
+            x += (tx - x) * 0.18; y += (ty - y) * 0.18;
+            paint();
+            raf = Math.abs(tx - x) + Math.abs(ty - y) > 0.5 ? requestAnimationFrame(follow) : 0;
+          };
+          addEventListener('pointermove', (e) => {
+            if (e.pointerType !== 'mouse') return;
+            tx = e.clientX; ty = e.clientY;
+            if (calm || !lamp.classList.contains('on')) { x = tx; y = ty; paint(); lamp.classList.add('on'); }
+            else if (!raf) raf = requestAnimationFrame(follow);
+          });
+          document.documentElement.addEventListener('mouseleave', () => lamp.classList.remove('on'));
+        }
+      }
     </script>
   </body>
 </html>
@@ -72,6 +118,10 @@ const { title, description = `${site.name}: data science student building AI app
     --sans: 'Fira Sans', 'Helvetica Neue', Arial, sans-serif;
     --mono: 'Fira Code', ui-monospace, Menlo, monospace;
     --deco: Limelight, Georgia, serif;
+    /* Flashlight: warm light in the beam, a faint dimming outside it. */
+    --beam: rgb(255 226 160 / 0.12);
+    --beam-edge: rgb(255 226 160 / 0.05);
+    --beam-dark: rgb(23 22 15 / 0.05);
     color-scheme: light;
   }
   :root[data-theme='dark'] {
@@ -81,8 +131,17 @@ const { title, description = `${site.name}: data science student building AI app
     --line: #2d2b23;
     --paper: #24211a;
     --accent: #d65a4f;
+    --beam: rgb(255 220 150 / 0.11);
+    --beam-edge: rgb(255 220 150 / 0.04);
+    --beam-dark: rgb(0 0 0 / 0.22);
     color-scheme: dark;
   }
+  .flashlight {
+    position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+    background: radial-gradient(circle 170px at var(--fx, -999px) var(--fy, -999px),
+      var(--beam), var(--beam-edge) 50%, transparent 72%, var(--beam-dark));
+  }
+  .flashlight.on { opacity: 1; }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -94,6 +153,23 @@ const { title, description = `${site.name}: data science student building AI app
   }
   a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
   a:hover { text-decoration-color: var(--accent); }
+  /* Underlined text links: on hover a red-pen line draws itself in under the words, left to right.
+     SVG backgrounds cannot read CSS variables, so --pen holds one stroke color per theme. */
+  :root { --pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 4.2C14 2.6 27 4.8 40 3.6S66 2.4 79 3.8 94 3 99 2.6' fill='none' stroke='%239e2b25' stroke-width='1.6' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+  :root[data-theme='dark'] { --pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 4.2C14 2.6 27 4.8 40 3.6S66 2.4 79 3.8 94 3 99 2.6' fill='none' stroke='%23d65a4f' stroke-width='1.6' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+  :is(main, footer ul) a:not([class], :is(h1, h2, h3, nav, .meta, .timetable) a) {
+    background: var(--pen) no-repeat left bottom / 0% 6px;
+    transition: background-size 0.35s cubic-bezier(0.2, 0.9, 0.2, 1), text-decoration-color 0.2s;
+  }
+  :is(main, footer ul) a:not([class], :is(h1, h2, h3, nav, .meta, .timetable) a):is(:hover, :focus-visible) {
+    background-size: 100% 6px; text-decoration-color: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :is(main, footer ul) a:not([class], :is(h1, h2, h3, nav, .meta, .timetable) a) { transition: none; }
+  }
+  /* Anything clickable turns the pointer into the detective's magnifying glass.
+     !important so it also beats the pointer and zoom-in cursors set on single parts. */
+  :is(a, button, summary, [role='button']) { cursor: url('/cursor-magnifier.svg') 12 12, pointer !important; }
   img { max-width: 100%; display: block; }
   h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.2; }
 
@@ -121,10 +197,16 @@ const { title, description = `${site.name}: data science student building AI app
   .meta { font: 13px var(--mono); color: var(--muted); }
 
   footer {
-    display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
     margin-top: 96px; padding-top: 24px; padding-bottom: 48px;
     border-top: 1px solid var(--line); font-size: 14px;
   }
+  .foot-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px 24px; flex-wrap: wrap; }
+  .foot-row + .foot-row { margin-top: 20px; }
   footer p { margin: 0; }
+  /* The header links again, as on felixrieseberg.com. */
+  footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 13px var(--mono); }
+  footer nav a { text-decoration: none; color: var(--muted); }
+  footer nav a:hover { color: var(--ink); }
+  .clock { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
   footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
 </style>

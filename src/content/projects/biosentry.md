@@ -5,6 +5,7 @@ kind: Clinical triage
 year: '2026'
 blurb: An early-warning dashboard for Philippine hospital wards.
 images: [/projects/biosentry.png, /projects/biosentry-ward-sim.png, /projects/biosentry-patch.webp]
+cover: /projects/biosentry-patch.webp
 tools: [FastAPI, React, TypeScript]
 ---
 

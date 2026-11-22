@@ -1,14 +1,18 @@
 ---
 // A steam train crossing the banner, drawn live as newspaper halftone dots.
 // A nod to the A.B.C. railway guide in The A.B.C. Murders.
+// A click blows the whistle. After dark in my time zone it runs at night. The mouse parts the smoke.
+import { site } from '../site';
 ---
-<div class="hero" aria-hidden="true">
-  <canvas></canvas>
-  <span class="hero-label">The B<i>.</i>C<i>.</i>A<i>.</i> Express</span>
-</div>
+<button type="button" class="hero" aria-label="Blow the train whistle" data-tz={site.timeZone}>
+  <canvas aria-hidden="true"></canvas>
+  <span class="hero-label" aria-hidden="true">The B<i>.</i>C<i>.</i>A<i>.</i> Express</span>
+  <span class="hero-hint" aria-hidden="true">Pull the whistle</span>
+</button>
 
 <script>
-  const canvas = document.querySelector<HTMLCanvasElement>('.hero canvas')!;
+  const hero = document.querySelector<HTMLButtonElement>('.hero')!;
+  const canvas = hero.querySelector('canvas')!;
   const ctx = canvas.getContext('2d')!;
   const INK = '#2a2620';
   const PAPER = '#efe8d4';
@@ -16,6 +20,21 @@
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let W = 0, H = 0, s = 1, rail = 0;
+
+  // Night: 18:00 to 06:00 where I am (the footer clock's time zone). ?night or ?day forces one, for testing.
+  let night = false;
+  const isNight = () => {
+    if (/[?&]night\b/.test(location.search)) return true;
+    if (/[?&]day\b/.test(location.search)) return false;
+    const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: hero.dataset.tz, hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+    return hour >= 18 || hour < 6;
+  };
+  const setNight = () => { night = isNight(); hero.classList.toggle('night', night); };
+  setNight();
+
+  // The mouse, in canvas pixels, while it is over the banner. The smoke clears around it.
+  let mouse: { x: number; y: number } | null = null;
+  const smooth = (u: number) => u * u * (3 - 2 * u);
 
   // Value noise, for billowing smoke and uneven ground.
   const hash = (x: number, y: number) => {
@@ -32,15 +51,16 @@
 
   // The train, in its own units: x runs left from the front buffer (0), y runs up from the rail (0).
   // Later shapes paint over earlier ones, so windows sit on top of bodies. d is ink darkness, 0 to 1.
-  type Shape = { r?: [number, number, number, number]; c?: [number, number, number]; d: number; wheel?: boolean };
+  // win marks a window: clear paper at night, so it looks lit.
+  type Shape = { r?: [number, number, number, number]; c?: [number, number, number]; d: number; wheel?: boolean; win?: boolean };
   const shapes: Shape[] = [];
-  const rect = (x0: number, x1: number, y0: number, y1: number, d: number) => shapes.push({ r: [x0, x1, y0, y1], d });
+  const rect = (x0: number, x1: number, y0: number, y1: number, d: number, win = false) => shapes.push({ r: [x0, x1, y0, y1], d, win });
   const circ = (cx: number, cy: number, r: number, d: number, wheel = false) => shapes.push({ c: [cx, cy, r], d, wheel });
   // Carriages, coupled behind the tender.
   for (const x of [-454, -344]) {
     rect(x, x + 102, -62, -18, 0.82); // body
     rect(x - 4, x + 106, -67, -62, 0.95); rect(x + 6, x + 96, -71, -67, 0.95); // roof with a clerestory
-    for (let k = 0; k < 5; k++) rect(x + 8 + k * 19, x + 20 + k * 19, -54, -40, 0.22);
+    for (let k = 0; k < 5; k++) rect(x + 8 + k * 19, x + 20 + k * 19, -54, -40, 0.22, true);
     rect(x + 102, x + 110, -30, -26, 0.9); // coupling
     circ(x + 18, -10, 9, 0.95, true); circ(x + 84, -10, 9, 0.95, true);
   }
@@ -50,7 +70,7 @@
   circ(-215, -10, 9, 0.95, true); circ(-180, -10, 9, 0.95, true);
   // Locomotive: cab, boiler, dome, chimney, smokebox, running board.
   rect(-152, -112, -78, -20, 0.9); rect(-156, -108, -84, -78, 0.98);
-  rect(-144, -124, -70, -56, 0.25); // cab window
+  rect(-144, -124, -70, -56, 0.25, true); // cab window
   rect(-116, -10, -52, -20, 0.88); circ(-12, -36, 16, 0.92);
   circ(-62, -54, 8, 0.95);
   rect(-31, -19, -72, -50, 0.95); rect(-34, -16, -76, -70, 1);
@@ -80,7 +100,7 @@
     for (const p of shapes) {
       if (p.r) {
         const [x0, x1, y0, y1] = p.r;
-        if (lx >= x0 && lx <= x1 && ly >= y0 && ly <= y1) d = p.d;
+        if (lx >= x0 && lx <= x1 && ly >= y0 && ly <= y1) d = p.win && night ? 0 : p.d;
       } else if (p.c) {
         const [cx, cy, r] = p.c, dx = lx - cx, dy = ly - cy, dist = Math.hypot(dx, dy);
         if (dist <= r) {
@@ -97,8 +117,22 @@
   };
 
   const scene = (x: number, y: number) => {
-    const sky = Math.max(0, (y / H - 0.25)) * 0.12; // blank paper at the top, a light haze near the hills
     const hills = H * 0.6 + (noise(x * 0.012, 4.2) - 0.5) * H * 0.22;
+    if (night) {
+      if (y < hills) {
+        // A paper moon: a clear disc, with an inked disc over one side for the crescent.
+        const mx = W * 0.84, my = H * 0.26, mr = H * 0.1;
+        if (Math.hypot(x - mx, y - my) < mr) return Math.hypot(x - mx + mr * 0.5, y - my + mr * 0.15) < mr * 0.9 ? 0.9 : 0;
+        if (hash(Math.floor(x), Math.floor(y)) > 0.992) return 0; // stars
+        const u = y / hills;
+        return 0.9 - 0.62 * u * u; // inked sky, lighter toward the hills so the train still shows
+      }
+      if (y < rail - 6 * s) return 0.2 + 0.08 * noise(x * 0.05, y * 0.05); // moonlit hills
+      if (Math.abs(y - rail) < 1.6 * s) return 0.1; // moonlight on the rail
+      if (y > rail && y < rail + 6 * s && ((x + 1000) % (16 * s)) < 6 * s) return 0.85;
+      return 0.5 + 0.1 * noise(x * 0.08, y * 0.08);
+    }
+    const sky = Math.max(0, (y / H - 0.25)) * 0.12; // blank paper at the top, a light haze near the hills
     if (y < hills) return sky;
     if (y < rail - 6 * s) return 0.2 + 0.08 * noise(x * 0.05, y * 0.05);
     if (Math.abs(y - rail) < 1.6 * s) return 0.95; // the rail
@@ -116,19 +150,48 @@
       sum += dens * Math.exp(-q * 1.4);
     }
     if (sum <= 0.01) return 0;
-    return Math.min(0.85, sum * (0.3 + 0.9 * noise(x * 0.05 + t * 0.2, y * 0.05 - t * 0.35)));
+    let v = Math.min(0.85, sum * (0.3 + 0.9 * noise(x * 0.05 + t * 0.2, y * 0.05 - t * 0.35)));
+    if (mouse) { // a clear patch around the mouse, soft at the edge
+      const md = Math.hypot(x - mouse.x, y - mouse.y);
+      if (md < 45) v *= smooth(md / 45);
+    }
+    return v;
+  };
+
+  // The whistle: a big burst of steam from the chimney, and a surge of speed that eases off.
+  // If the chimney is off-screen, the train races round and whistles as soon as the chimney is back in view.
+  let boost = 0, pendingWhistle = false;
+  const BOOST = 1.5; // seconds
+  const chimneyOnScreen = () => tx - 25 * s > 10 && tx - 25 * s < W - 10;
+  const whistle = () => {
+    boost = BOOST;
+    if (!chimneyOnScreen()) return void (pendingWhistle = true);
+    const cx = tx - 25 * s, cy = rail - 78 * s;
+    for (let i = 0; i < 12; i++) {
+      puffs.push({ x: cx + (Math.random() - 0.5) * 14 * s, y: cy - i * 3 * s, age: Math.random() * 0.3, life: 5 + Math.random() * 1.5, r0: (9 + Math.random() * 6) * s });
+    }
   };
 
   const step = (dt: number) => {
     t += dt;
-    tx += (W / 16) * dt; // about 16 s to cross
-    if (tx > W + TRAIN_LEN * s + 120) tx = -20;
+    if (pendingWhistle) boost = BOOST; // keep racing until the whistle can blow
+    const surge = 1 + (1.2 * Math.max(0, boost)) / BOOST;
+    boost -= dt;
+    tx += (W / 16) * dt * surge; // about 16 s to cross
+    if (tx > W + TRAIN_LEN * s + (pendingWhistle ? 0 : 120)) tx = -20;
+    if (pendingWhistle && chimneyOnScreen()) { pendingWhistle = false; whistle(); }
     emit -= dt;
     if (emit <= 0 && tx > -10 && tx < W + 30) {
       emit = 0.11;
       puffs.push({ x: tx - 25 * s + (Math.random() - 0.5) * 4 * s, y: rail - 78 * s, age: 0, life: 4.5 + Math.random(), r0: 6 * s });
     }
     for (const p of puffs) { p.age += dt; p.y -= (20 - p.age * 3) * s * dt; p.x -= 9 * s * dt; }
+    if (mouse) { // the mouse pushes nearby puffs aside, like a hand waving through steam
+      for (const p of puffs) {
+        const dx = p.x - mouse.x, dy = p.y - mouse.y, d = Math.hypot(dx, dy) || 1;
+        if (d < 70) { const k = (1 - d / 70) * 60 * dt; p.x += (dx / d) * k; p.y += (dy / d) * k; }
+      }
+    }
     puffs = puffs.filter((p) => p.age < p.life);
   };
 
@@ -141,7 +204,7 @@
         const base = train(x, y);
         let d = base >= 0 ? base : scene(x, y);
         const sm = smoke(x, y);
-        d = d + sm * (1 - d);
+        d = night ? d * (1 - sm) : d + sm * (1 - d); // by day smoke is ink; by night, steam lit by the moon
         const r = CELL * 0.6 * Math.sqrt(d);
         if (d < 0.04) continue; // leave clean paper
         ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -152,13 +215,30 @@
 
   resize();
   new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
+  setInterval(() => { const was = night; setNight(); if (was !== night) draw(); }, 60_000);
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const b = canvas.getBoundingClientRect();
+    mouse = { x: e.clientX - b.left, y: e.clientY - b.top };
+    if (calm) draw();
+  });
+  canvas.addEventListener('pointerleave', () => { mouse = null; if (calm) draw(); });
 
   if (calm) {
     // A still frame: the train mid-banner with its smoke trail behind it.
     tx = W * 0.55 - 6 * (W / 16);
     for (let i = 0; i < 180; i++) step(1 / 30);
     draw();
+    // The whistle still works, as a new still frame with the burst of steam.
+    hero.addEventListener('click', () => {
+      if (!chimneyOnScreen()) tx = W * 0.55; // no racing round in a still frame
+      whistle();
+      for (let i = 0; i < 20; i++) step(1 / 30);
+      draw();
+    });
   } else {
+    hero.addEventListener('click', whistle);
     tx = W * 0.35;
     for (let i = 0; i < 90; i++) step(1 / 30); // start with smoke already in the air
     let visible = true, last = 0, raf = 0;
@@ -179,13 +259,22 @@
 
 <style>
   .hero {
-    position: relative; height: clamp(150px, 34vw, 210px); margin-bottom: 28px; border-radius: 2px; overflow: hidden;
+    position: relative; display: block; width: 100%; height: clamp(150px, 34vw, 210px); margin-bottom: 28px; padding: 0; border: 0;
+    border-radius: 2px; overflow: hidden; font: inherit; text-align: left;
     background: #efe8d4; box-shadow: 0 1px 0 var(--line), 0 8px 20px -14px rgb(0 0 0 / 0.5);
   }
+  .hero:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   canvas { display: block; width: 100%; height: 100%; }
-  .hero-label {
-    position: absolute; top: 10px; left: 12px; font: 10px var(--deco); letter-spacing: 0.2em; text-transform: uppercase;
-    color: #2a2620; opacity: 0.75;
+  .hero-label, .hero-hint {
+    position: absolute; top: 10px; font: 10px var(--deco); letter-spacing: 0.2em; text-transform: uppercase; color: #2a2620;
   }
+  .hero-label { left: 12px; opacity: 0.75; }
   .hero-label i { font-style: normal; color: #9e2b25; }
+  /* A quiet hint on hover or focus, so people know the banner does something. */
+  .hero-hint { right: 12px; opacity: 0; transition: opacity 0.3s; }
+  .hero:is(:hover, :focus-visible) .hero-hint { opacity: 0.6; }
+  /* At night the sky is inked, so the lettering turns to paper. */
+  .night .hero-label, .night .hero-hint { color: #efe8d4; }
+  .night .hero-label i { color: #d65a4f; }
+  .night .hero-hint { right: auto; left: 12px; top: 26px; } /* clear of the moon */
 </style>

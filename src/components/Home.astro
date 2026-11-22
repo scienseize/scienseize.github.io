@@ -39,12 +39,18 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     {projects.map((p, i) => (
       <a class="exhibit" href={`/projects/${p.id}/`} data-project={p.id}>
         {p.abstract
-          ? <div class="shot paper" aria-hidden="true"><p class="paper-head">Abstract</p><p>{p.abstract}</p></div>
-          : <div class="shot">
-              {p.images[0]
-                ? <img src={p.images[0]} alt={`Screenshot of ${p.title}`} loading="lazy" />
-                : <span class="meta">screenshot pending</span>}
-            </div>}
+          ? <div class="shot news abstract" aria-hidden="true">
+              <div class="halftone"><div class="paper"><p class="paper-head">Abstract</p><p>{p.abstract}</p></div></div>
+              <div class="crisp paper"><p class="paper-head">Abstract</p><p>{p.abstract}</p></div>
+              <span class="stamp">Classified</span>
+            </div>
+          : (p.cover ?? p.images[0])
+            ? <div class="shot news">
+                <span class="halftone" aria-hidden="true"><img src={p.cover ?? p.images[0]} alt="" loading="lazy" /></span>
+                <img class="crisp" src={p.cover ?? p.images[0]} alt={`Image of ${p.title}`} loading="lazy" />
+                <span class="stamp" aria-hidden="true">Classified</span>
+              </div>
+            : <div class="shot"><span class="meta">screenshot pending</span></div>}
         <div class="tag">
           <p class="label">Exhibit {letter(i)} · {p.year}</p>
           <h3>{p.title}</h3>
@@ -86,7 +92,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <div class="photos">
     {photos.filter((ph) => ph.image).map((ph) => (
       <figure>
-        <button type="button" class="print" data-full={ph.image} data-caption={ph.caption} aria-label={`View photo: ${ph.caption}`}>
+        <button type="button" class="print news" data-full={ph.image} data-caption={ph.caption} aria-label={`View photo: ${ph.caption}`}>
           <span class="halftone" aria-hidden="true"><img src={ph.image} alt="" loading="lazy" /></span>
           <img class="crisp" src={ph.image} alt="" loading="lazy" />
           <span class="stamp" aria-hidden="true">Classified</span>
@@ -284,9 +290,30 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   const initial = slugOf(location.pathname);
   if (initial) open(initial, false);
+
+  // Lens: the clear print shows only in a circle under the mouse (the CSS reads --lx/--ly).
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const n = (e.target as Element).closest<HTMLElement>('.news');
+    if (!n) return;
+    const r = n.getBoundingClientRect();
+    n.style.setProperty('--lx', `${e.clientX - r.left}px`);
+    n.style.setProperty('--ly', `${e.clientY - r.top}px`);
+  }, { passive: true });
+
+  // Stamps thump onto the page the first time they scroll into view.
+  if (!calm) {
+    const io = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      en.target.classList.replace('pending', 'stamped');
+      io.unobserve(en.target);
+    }), { threshold: 0.5 });
+    document.querySelectorAll('.stamp, .file-stamp').forEach((s) => { s.classList.add('pending'); io.observe(s); });
+  }
 </script>
 
 <style>
+
   section { margin-top: 72px; }
   .intro { margin-top: 48px; }
   h1 { font-size: clamp(36px, 8vw, 48px); margin: 0; }
@@ -354,7 +381,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .file-stamp {
     position: absolute; top: 10px; right: 14px; padding: 1px 7px; border: 1.5px solid currentColor; border-radius: 2px;
     font: 10px var(--deco); letter-spacing: 0.22em; text-transform: uppercase; color: #9e2b25;
-    transform: rotate(-4deg); opacity: 0.7;
+    --tilt: -4deg; transform: rotate(var(--tilt)); opacity: 0.7;
   }
   :root[data-theme='dark'] .file-stamp { color: #d65a4f; }
   /* Books stand on a double rule, like a ledger line. */
@@ -437,21 +464,25 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   /* Photos print like a 1930s newspaper: halftone dots in ink on cream newsprint.
      The dots grow with the shadows (contrast over a blurred photo and a dot screen).
-     Hover or keyboard focus develops the real photo; a click opens it full size. */
+     Hover or keyboard focus develops the real photo; a click opens it full size.
+     Exhibit screenshots use the same print (.news) and develop when their card is hovered. */
+  .news { position: relative; overflow: hidden; background: #efe8d4; }
   .print {
-    position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0;
-    border-radius: 2px; overflow: hidden; cursor: zoom-in; background: #efe8d4;
+    display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; border: 0;
+    border-radius: 2px; cursor: zoom-in;
     box-shadow: 0 1px 0 var(--line), 0 6px 16px -10px rgb(0 0 0 / 0.5);
   }
   .halftone { position: absolute; inset: 0; background: #fff; filter: contrast(9); opacity: 0.82; }
   .halftone img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(1.45) contrast(0.85) blur(1px); }
+  /* Screenshots are mostly light UI, so print them darker or they come out as blank paper. */
+  .shot .halftone img { filter: grayscale(1) brightness(0.75) contrast(1.4) blur(1px); }
   .halftone::after {
     content: ''; position: absolute; inset: -50%;
     background: radial-gradient(circle, #000 1.1px, #fff 3.2px) 0 0 / 4.5px 4.5px;
     transform: rotate(45deg); mix-blend-mode: screen;
   }
   /* Newsprint: white becomes cream and black becomes soft ink. */
-  .print::after {
+  .news::after {
     content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply;
     background: linear-gradient(#efe8d4, #e6dcc2);
     transition: opacity 0.6s;
@@ -460,20 +491,48 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
     opacity: 0; transition: opacity 0.6s ease;
   }
-  .print:hover .crisp, .print:focus-visible .crisp { opacity: 1; }
-  .print:hover::after, .print:focus-visible::after { opacity: 0; }
+  :is(.print, .exhibit):is(:hover, :focus-visible) .crisp { opacity: 1; }
+  .print:is(:hover, :focus-visible)::after, .exhibit:is(:hover, :focus-visible) .news::after { opacity: 0; }
   .print:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   /* A worn rubber stamp in oxblood ink. It lifts away when the photo develops ("declassified"). */
   .stamp {
     position: absolute; z-index: 1; top: 10px; right: 10px; padding: 2px 7px 1px;
     font: 9px var(--deco); letter-spacing: 0.22em; text-transform: uppercase; color: #9e2b25;
-    border: 1.5px solid currentColor; border-radius: 2px; transform: rotate(-7deg); opacity: 0.9;
+    border: 1.5px solid currentColor; border-radius: 2px; --tilt: -7deg; transform: rotate(var(--tilt)); opacity: 0.9;
     background: rgb(239 232 212 / 0.88);
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 1.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 1.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
     transition: opacity 0.4s, transform 0.4s;
   }
-  .print:hover .stamp, .print:focus-visible .stamp { opacity: 0; transform: rotate(-7deg) translateY(-6px); }
+  :is(.print, .exhibit):is(:hover, :focus-visible) .stamp { opacity: 0; transform: rotate(var(--tilt)) translateY(-6px); }
+  /* Stamps thump in when they first scroll into view (the script adds .pending, then .stamped).
+     No fill mode, so the hover lift works again once the 280 ms are over. */
+  :is(.stamp, .file-stamp).pending { opacity: 0; }
+  :is(.stamp, .file-stamp).stamped { animation: thump 280ms ease-in; }
+  @keyframes thump {
+    from { opacity: 0; transform: rotate(var(--tilt)) scale(1.8); }
+    70% { transform: rotate(var(--tilt)) scale(0.94); }
+    to { transform: rotate(var(--tilt)); }
+  }
+
+  /* With a mouse, a lens under the pointer shows the clear print; outside it the newsprint stays.
+     Keyboard focus, and hovering an exhibit's paper tag, still develop the whole print. */
+  @media (hover: hover) and (pointer: fine) {
+    .news { --lens: circle 56px at var(--lx, -999px) var(--ly, -999px); }
+    .news .crisp {
+      -webkit-mask-image: radial-gradient(var(--lens), #000 85%, transparent);
+      mask-image: radial-gradient(var(--lens), #000 85%, transparent);
+    }
+    .news:hover .crisp { opacity: 1; }
+    .print:hover:not(:focus-visible)::after,
+    .exhibit:not(:focus-visible) .news:hover::after {
+      opacity: 1;
+      -webkit-mask-image: radial-gradient(var(--lens), transparent 85%, #000);
+      mask-image: radial-gradient(var(--lens), transparent 85%, #000);
+    }
+    .exhibit:hover .news:not(:hover) .crisp,
+    :is(.print, .exhibit):focus-visible .crisp { -webkit-mask-image: none; mask-image: none; }
+  }
 
   /* Full-size viewer. */
   .lightbox {
@@ -485,7 +544,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .lightbox img { max-width: min(1400px, 100%); max-height: calc(100dvh - 140px); object-fit: contain; border-radius: 2px; }
   .lightbox-caption { margin: 0; max-width: 70ch; text-align: center; font: italic 16px var(--serif); }
   .lightbox .close-case { position: absolute; top: 16px; right: 18px; }
-  @media (prefers-reduced-motion: reduce) { .crisp, .print::after, .stamp { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .crisp, .news::after, .stamp { transition: none; } }
 
   /* Project sheet: anchored at the bottom. It opens with the iris (see the script). */
   .sheet {
@@ -569,11 +628,12 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   /* A paper page, for research projects: the abstract instead of a screenshot. */
   .paper {
-    background: #fffdf8; color: #17160f; border: 1px solid var(--line);
+    position: absolute; inset: 0; display: block; padding: 18px 22px;
+    background: #fffdf8; color: #17160f;
     font: 11px/1.55 var(--serif); text-align: justify; hyphens: auto;
   }
-  .shot.paper {
-    display: block; padding: 18px 22px; position: relative;
+  .halftone .paper { filter: blur(0.6px); }
+  .shot.abstract {
     -webkit-mask-image: linear-gradient(#000 70%, transparent);
     mask-image: linear-gradient(#000 70%, transparent);
   }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- The detective's magnifying glass, printed like the rest of the site: ink lines on newsprint,
+       an Art Deco double rim, halftone dots for the shade in the glass, and an oxblood band.
+       A thin paper halo keeps it visible on the dark theme. The hotspot is the lens centre (12, 12). -->
+  <g fill="none" stroke="#f7f5ef" stroke-linecap="round">
+    <path d="M19 19l9.4 9.4" stroke-width="6.6"/>
+    <circle cx="12" cy="12" r="9" stroke-width="5"/>
+  </g>
+  <path d="M19.4 19.4l9 9" stroke="#17160f" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18.2 18.2l3 3" stroke="#9e2b25" stroke-width="5"/>
+  <circle cx="12" cy="12" r="9" fill="#efe8d4" stroke="#17160f" stroke-width="2.2"/>
+  <circle cx="12" cy="12" r="6.9" fill="none" stroke="#17160f" stroke-width="0.6"/>
+  <g fill="#17160f">
+    <circle cx="15.6" cy="15.6" r="1"/>
+    <circle cx="13.2" cy="16.9" r="0.8"/>
+    <circle cx="16.9" cy="13.2" r="0.8"/>
+    <circle cx="10.8" cy="17.6" r="0.55"/>
+    <circle cx="14.4" cy="14.4" r="0.55"/>
+    <circle cx="17.6" cy="10.8" r="0.55"/>
+    <circle cx="12" cy="15.4" r="0.4"/>
+    <circle cx="15.4" cy="12" r="0.4"/>
+  </g>
+  <path d="M7.6 10.4a4.8 4.8 0 0 1 2.8-2.8" fill="none" stroke="#17160f" stroke-width="0.9" stroke-linecap="round"/>
+</svg>
