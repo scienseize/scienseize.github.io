@@ -5,7 +5,6 @@ import { site, about, timeline } from '../site';
 ---
 <Base title="About">
   <h1>About</h1>
-  <p class="sub">{site.role} · {site.location}</p>
 
   <div class="card">
     {about.photo ? <img src={about.photo} alt={`Portrait of ${site.name}`} /> : <div class="photo" />}
@@ -39,8 +38,7 @@ import { site, about, timeline } from '../site';
 </Base>
 
 <style>
-  h1 { margin: 48px 0 0; font-size: clamp(36px, 8vw, 48px); }
-  .sub { margin: 4px 0 32px; font: 13px var(--mono); color: var(--muted); }
+  h1 { margin: 48px 0 32px; font-size: clamp(36px, 8vw, 48px); }
 
   .card { display: grid; grid-template-columns: 160px 1fr; gap: 24px; align-items: start; }
   .card img, .photo { width: 160px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 4px; }

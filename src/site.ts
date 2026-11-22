@@ -18,8 +18,6 @@ export const site = {
     'refactoring code',
     'building agents',
   ],
-  role: 'Engineer',
-  location: 'Manila, Philippines',
   email: 'billalcantara.dev@gmail.com',
   socials: [
     { label: 'GitHub', href: 'https://github.com/scienseize' },

@@ -13,6 +13,7 @@ const projects = await Promise.all(
     .map(async (p) => ({ id: p.id, ...p.data, Content: (await render(p)).Content })),
 );
 const letter = (i: number) => String.fromCharCode(65 + i); // Exhibit A, B, C...
+const roman = (n: number) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] ?? String(n); // chapters and plates
 const initials = (name: string) => name.split(/[\s-]+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const caption = (b: (typeof library)[number], i: number) =>
   `Item ${String(i + 1).padStart(2, '0')} · ${b.title} — ${b.author} · ${b.kind}, ${b.year}`;
@@ -25,12 +26,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <p class="tagline">
     <em>currently</em> <span id="doing" class="doing" aria-hidden="true" data-words={JSON.stringify(site.doing)}>{site.doing[0]}</span><span class="sr">{site.doing[0]}</span>.
   </p>
-  <p class="meta">{site.role} · {site.location}</p>
-  <p>
-    I build AI applications end to end, from the model to the API to the interface people actually use.
-    Lately that means speech coaching, clinical triage, civic tech, and measuring where the energy in a
-    transformer goes.
-  </p>
+  <p>I am a data science student. Engineer. Maintainer of too many small projects.</p>
   <p>
     Get to know <span class="nw"><a href="/about/">more about me</a>,</span> look through the <span class="nw"><a href="#exhibits">evidence</a>,</span>{" "}
     see what's on my <span class="nw"><a href="#library">shelf</a>,</span> read my <span class="nw"><a href="#writing">writing</a>,</span> or say hi at <a href={`mailto:${site.email}`}>{site.email}</a>.
@@ -102,7 +98,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 </section>
 
 <dialog class="lightbox" aria-label="Photo">
-  <button type="button" class="esc" data-close aria-label="Close">esc ✕</button>
+  <button type="button" class="close-case on-dark" data-close>Return the evidence</button>
   <img alt="" />
   <p class="lightbox-caption"></p>
 </dialog>
@@ -110,27 +106,43 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 {projects.map((p, i) => (
   <dialog class="sheet" data-slug={p.id} data-title={p.title} aria-labelledby={`t-${p.id}`}>
     <div class="inner">
-      <div class="grip" aria-hidden="true"></div>
-      <header>
-        <p class="crumb"><span>{site.name}</span> — <span>{p.title}</span></p>
-        <button type="button" class="esc" data-close aria-label="Close">esc ✕</button>
+      <header class="running">
+        <span class="running-head">{site.name} · The Case Files</span>
+        <button type="button" class="close-case" data-close>Close the case</button>
       </header>
+      <div class="chapter">
+        <p class="chapter-no">Chapter {roman(i + 1)} · Exhibit {letter(i)}</p>
+        <h2 id={`t-${p.id}`}><small>The Case of</small> {p.title}</h2>
+        <p class="kind-line">{p.kind}, {p.year}</p>
+        <div class="ornament" aria-hidden="true"><span></span></div>
+        <p class="epigraph">{p.blurb}</p>
+      </div>
+      {p.images[0] && (
+        <figure class="plate">
+          <img src={p.images[0]} alt={`${p.title}, plate I`} loading="lazy" />
+          <figcaption><span>Plate I.</span> {p.title}</figcaption>
+        </figure>
+      )}
       {p.abstract
-        ? <div class="paper full"><p class="paper-head">Abstract</p><p>{p.abstract}</p></div>
-        : p.images.length
-          ? p.images.map((src, n) => <div class="shot big"><img src={src} alt={`${p.title}, screenshot ${n + 1}`} loading="lazy" /></div>)
-          : <div class="shot big"><span class="meta">screenshot pending</span></div>}
-      <p class="label exhibit-no">Exhibit {letter(i)}</p>
-      <h2 id={`t-${p.id}`}>{p.title} <span>— {p.kind}</span></h2>
-      <p class="lede">{p.blurb}</p>
-      <div class="write-up"><p.Content /></div>
-      <dl class="facts">
-        {p.role && <div><dt class="label">Role</dt><dd>{p.role}</dd></div>}
-        <div><dt class="label">Stack</dt><dd>{p.tools.join(' · ')}</dd></div>
-        <div><dt class="label">Year</dt><dd>{p.year}</dd></div>
-        {p.status && <div><dt class="label">Status</dt><dd>{p.status}</dd></div>}
-        {p.href && <div><dt class="label">Source</dt><dd><a href={p.href}>{p.href.replace(/^https?:\/\/(www\.)?/, '')} ↗</a></dd></div>}
-      </dl>
+        ? <div class="prose dropcap"><p class="abstract-head">Abstract</p><p>{p.abstract}</p></div>
+        : <div class="prose dropcap"><p.Content /></div>}
+      {p.images.slice(1).map((src, n) => (
+        <figure class="plate">
+          <img src={src} alt={`${p.title}, plate ${roman(n + 2)}`} loading="lazy" />
+          <figcaption><span>Plate {roman(n + 2)}.</span> {p.title}</figcaption>
+        </figure>
+      ))}
+      <section class="particulars" aria-label="Particulars of the case">
+        <p class="particulars-head">Particulars of the Case</p>
+        <dl>
+          {p.role && <div><dt>Role</dt><dd>{p.role}</dd></div>}
+          <div><dt>Instruments</dt><dd>{p.tools.join(' · ')}</dd></div>
+          <div><dt>Year</dt><dd>{p.year}</dd></div>
+          {p.status && <div><dt>Status</dt><dd>{p.status}</dd></div>}
+          {p.href && <div><dt>Source</dt><dd><a href={p.href}>{p.href.replace(/^https?:\/\/(www\.)?/, '')}</a></dd></div>}
+        </dl>
+      </section>
+      <p class="finis">Finis.</p>
     </div>
   </dialog>
 ))}
@@ -176,21 +188,55 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     }),
   );
 
+  // Iris: like a silent detective film, a circle opens from the spot that was clicked to reveal
+  // the exhibit or photo, and shrinks back to that spot on close. Keyboard and direct links open
+  // from the centre of the element. With reduced motion, dialogs open and close at once.
+  const irisFrom = (e: MouseEvent, el: Element) => {
+    if (e.detail > 0) return { x: e.clientX, y: e.clientY }; // a real click or tap
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; // Enter or Space
+  };
+  const irisShape = (d: HTMLDialogElement, from?: { x: number; y: number }) => {
+    const r = d.getBoundingClientRect();
+    const x = from ? from.x - r.left : r.width / 2, y = from ? from.y - r.top : r.height / 2;
+    const R = Math.hypot(Math.max(x, r.width - x), Math.max(y, r.height - y));
+    return [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`];
+  };
+  const irisOpen = (d: HTMLDialogElement, from?: { x: number; y: number }) => {
+    d.showModal();
+    if (calm) return;
+    const [small, big] = irisShape(d, from);
+    d.dataset.iris = JSON.stringify(from ?? null);
+    d.animate({ clipPath: [small, big] }, { duration: 650, easing: 'cubic-bezier(0.65, 0, 0.25, 1)' });
+  };
+  const irisClose = (d: HTMLDialogElement) => {
+    if (!d.open || d.dataset.closing) return;
+    if (calm) return d.close();
+    d.dataset.closing = '1';
+    const [small, big] = irisShape(d, JSON.parse(d.dataset.iris || 'null') ?? undefined);
+    const a = d.animate({ clipPath: [big, small] }, { duration: 420, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' });
+    a.onfinish = () => { delete d.dataset.closing; d.close(); a.cancel(); };
+  };
+  // Esc closes with the iris too.
+  document.querySelectorAll<HTMLDialogElement>('dialog.sheet, dialog.lightbox').forEach((d) =>
+    d.addEventListener('cancel', (e) => { e.preventDefault(); irisClose(d); }),
+  );
+
   // Photos: a click opens the full-size photo; Esc, the close button or a click outside closes it.
   const lightbox = document.querySelector<HTMLDialogElement>('dialog.lightbox')!;
   const lightboxImg = lightbox.querySelector('img')!;
   const lightboxCaption = lightbox.querySelector('.lightbox-caption')!;
   document.querySelectorAll<HTMLButtonElement>('.print').forEach((btn) =>
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
       lightboxImg.src = btn.dataset.full!;
       lightboxImg.alt = btn.dataset.caption!;
       lightboxCaption.textContent = btn.dataset.caption!;
-      lightbox.showModal();
+      irisOpen(lightbox, irisFrom(e, btn));
     }),
   );
   lightbox.addEventListener('click', (e) => {
     const t = e.target as Element;
-    if (t !== lightboxImg) lightbox.close();
+    if (t !== lightboxImg) irisClose(lightbox);
   });
 
   // Project sheets: a card opens its sheet and puts /projects/<slug>/ in the address bar.
@@ -201,10 +247,10 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   const homeTitle = document.title.split(' · ').pop()!;
   const slugOf = (path: string) => path.match(/^\/projects\/([^/]+)\/?$/)?.[1];
 
-  const open = (slug: string, push: boolean) => {
+  const open = (slug: string, push: boolean, from?: { x: number; y: number }) => {
     const d = sheets.get(slug);
     if (!d || d.open) return;
-    d.showModal();
+    irisOpen(d, from);
     document.title = `${d.dataset.title} · ${homeTitle}`;
     if (push) history.pushState({ sheet: slug }, '', `/projects/${slug}/`);
   };
@@ -213,14 +259,14 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     a.addEventListener('click', (e) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let "open in new tab" work
       e.preventDefault();
-      open(a.dataset.project!, true);
+      open(a.dataset.project!, true, irisFrom(e, a));
     }),
   );
 
   sheets.forEach((d) => {
     d.addEventListener('click', (e) => {
       const t = e.target as Element;
-      if (t === d || t.closest('[data-close]')) d.close(); // `t === d` is the backdrop
+      if (t === d || t.closest('[data-close]')) irisClose(d); // `t === d` is the backdrop
     });
     d.addEventListener('close', () => {
       document.title = homeTitle;
@@ -232,7 +278,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   addEventListener('popstate', () => {
     const slug = slugOf(location.pathname);
-    sheets.forEach((d, s) => { if (d.open && s !== slug) d.close(); });
+    sheets.forEach((d, s) => { if (d.open && s !== slug) irisClose(d); });
     if (slug) open(slug, false);
   });
 
@@ -244,8 +290,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   section { margin-top: 72px; }
   .intro { margin-top: 48px; }
   h1 { font-size: clamp(36px, 8vw, 48px); margin: 0; }
-  .tagline { font: 20px var(--serif); margin: 4px 0 8px; color: var(--muted); }
-  .intro .meta { margin: 0 0 24px; }
+  .tagline { font: 20px var(--serif); margin: 4px 0 24px; color: var(--muted); }
   /* Intro links lean in slightly on hover, like a word under a magnifying glass. */
   .nw { white-space: nowrap; } /* keep a link and its comma on one line */
   .intro p a {
@@ -437,45 +482,90 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
   }
   .lightbox[open] { display: flex; }
-  .lightbox::backdrop { background: rgb(15 14 10 / 0.9); }
   .lightbox img { max-width: min(1400px, 100%); max-height: calc(100dvh - 140px); object-fit: contain; border-radius: 2px; }
   .lightbox-caption { margin: 0; max-width: 70ch; text-align: center; font: italic 16px var(--serif); }
-  .lightbox .esc { position: absolute; top: 14px; right: 16px; }
+  .lightbox .close-case { position: absolute; top: 16px; right: 18px; }
   @media (prefers-reduced-motion: reduce) { .crisp, .print::after, .stamp { transition: none; } }
 
-  /* Project sheet: slides up from the bottom, like a drawer. */
+  /* Project sheet: anchored at the bottom. It opens with the iris (see the script). */
   .sheet {
     margin: auto auto 0; padding: 0; border: 0;
     width: min(720px, 100%); max-width: 100%; height: 92dvh; max-height: 92dvh;
-    border-radius: 16px 16px 0 0; background: var(--bg); color: var(--ink);
-    box-shadow: 0 -8px 40px rgb(0 0 0 / 0.25); outline: none;
-    transform: translateY(0);
-    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), overlay 0.4s allow-discrete, display 0.4s allow-discrete;
+    border-radius: 3px 3px 0 0; color: #2a2620; outline: none;
+    /* An old novel's page: warm paper with a faint grain, browned toward the edges. */
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
+      #f3ecda;
+    box-shadow: inset 0 0 90px rgb(120 85 35 / 0.22), 0 -8px 40px rgb(0 0 0 / 0.3);
   }
-  .sheet:not([open]) { transform: translateY(100%); }
-  @starting-style { .sheet[open] { transform: translateY(100%); } }
-  .sheet::backdrop {
-    background: rgb(0 0 0 / 0.4);
-    transition: background 0.4s, overlay 0.4s allow-discrete, display 0.4s allow-discrete;
+  /* The room dims around the iris, darker at the edges like an old film frame. */
+  .sheet::backdrop, .lightbox::backdrop {
+    background: radial-gradient(ellipse at center, rgb(15 14 10 / 0.45), rgb(15 14 10 / 0.8));
+    opacity: 1; transition: opacity 0.45s, overlay 0.45s allow-discrete, display 0.45s allow-discrete;
   }
-  @starting-style { .sheet[open]::backdrop { background: rgb(0 0 0 / 0); } }
+  .lightbox::backdrop { background: radial-gradient(ellipse at center, rgb(15 14 10 / 0.82), rgb(15 14 10 / 0.95)); }
+  @starting-style { .sheet[open]::backdrop, .lightbox[open]::backdrop { opacity: 0; } }
   :global(html:has(dialog[open])) { overflow: hidden; }
 
-  .inner { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 0 24px 56px; }
-  .grip { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto 0; }
-  .sheet header {
-    position: sticky; top: 0; z-index: 1; background: var(--bg);
-    display: flex; justify-content: space-between; align-items: center; padding: 12px 0;
+  .inner { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 0 clamp(22px, 7vw, 64px) 64px; }
+  .inner > * { max-width: 62ch; margin-inline: auto; }
+  /* The running head along the top of the page, as in a printed book. */
+  .running {
+    position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding: 18px 0 10px; background: #f3ecda; border-bottom: 1px solid rgb(42 38 32 / 0.25);
   }
-  .crumb { margin: 0; font-size: 15px; }
-  .crumb span:last-child { color: var(--muted); }
-  .esc {
-    font: 12px var(--mono); color: var(--muted); background: var(--paper); cursor: pointer;
-    border: 0; border-radius: 999px; padding: 6px 12px;
+  .running-head { font: 500 11px var(--serif); letter-spacing: 0.16em; text-transform: uppercase; color: #6b5f4b; }
+  /* The close button: a line from the story instead of a key name. */
+  .close-case {
+    flex: none; padding: 2px 0; border: 0; border-bottom: 1px solid currentColor; background: none; cursor: pointer;
+    font: italic 14px var(--serif); color: #9e2b25;
   }
-  .esc:hover { color: var(--ink); }
-  .shot.big { margin-top: 8px; }
-  .shot.big + .shot.big { margin-top: 16px; }
+  .close-case:hover { color: #6f1c18; }
+  .close-case:focus-visible { outline: 2px solid #9e2b25; outline-offset: 4px; }
+  .close-case.on-dark { color: #e6c9a8; }
+  .close-case.on-dark:hover { color: #fff; }
+
+  /* Chapter opening. */
+  .chapter { text-align: center; padding: 44px 0 8px; }
+  .chapter-no { margin: 0; font: 500 11px var(--serif); letter-spacing: 0.3em; text-transform: uppercase; color: #6b5f4b; }
+  .sheet h2 { margin: 18px 0 0; font: 600 clamp(30px, 6.5vw, 42px)/1.1 var(--serif); color: #1f1c16; }
+  .sheet h2 small { display: block; margin-bottom: 6px; font: italic 400 0.45em var(--serif); color: #6b5f4b; }
+  .kind-line { margin: 10px 0 0; font: italic 15px var(--serif); color: #6b5f4b; }
+  .ornament { display: flex; justify-content: center; margin: 22px auto 0; }
+  .ornament span { position: relative; width: 140px; height: 1px; background: linear-gradient(90deg, transparent, #2a2620 25%, #2a2620 75%, transparent); }
+  .ornament span::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -4px 0 0 -4px;
+    background: #9e2b25; transform: rotate(45deg); box-shadow: 0 0 0 3px #f3ecda;
+  }
+  .epigraph { margin: 20px auto 0 !important; max-width: 44ch !important; font: italic 17px/1.6 var(--serif); color: #4a4234; }
+
+  /* Screenshots as illustration plates. */
+  .plate { margin: 36px auto 0; padding: 10px; background: #fbf7ec; border: 1px solid rgb(42 38 32 / 0.25); box-shadow: 0 6px 18px -12px rgb(60 40 15 / 0.45); }
+  .plate img { width: 100%; display: block; filter: sepia(0.12); }
+  .plate figcaption { margin-top: 8px; text-align: center; font: italic 13px var(--serif); color: #4a4234; }
+  .plate figcaption span { font-style: normal; font-variant: small-caps; letter-spacing: 0.06em; }
+
+  /* Body text, set like a novel: justified, indented paragraphs, an Art Deco drop cap. */
+  .prose { margin-top: 32px; font: 17.5px/1.75 var(--serif); text-align: justify; hyphens: auto; color: #2a2620; }
+  .prose :global(p) { margin: 0; }
+  .prose :global(p + p) { text-indent: 1.6em; }
+  .prose :global(code) { font: 0.85em var(--mono); background: rgb(42 38 32 / 0.07); padding: 1px 4px; border-radius: 2px; }
+  .dropcap :global(p:not(.abstract-head):first-of-type::first-letter),
+  .dropcap .abstract-head + :global(p::first-letter) {
+    float: left; margin: 6px 10px 0 0; font: 3.6em/0.8 var(--deco); color: #9e2b25;
+  }
+  .abstract-head { margin-bottom: 14px !important; text-align: center; font: 600 12px var(--serif); letter-spacing: 0.3em; text-transform: uppercase; color: #6b5f4b; }
+
+  /* Particulars, set like a table of contents with dotted leaders. */
+  .particulars { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgb(42 38 32 / 0.25); }
+  .particulars-head { margin: 0 0 14px; text-align: center; font: 500 11px var(--serif); letter-spacing: 0.3em; text-transform: uppercase; color: #6b5f4b; }
+  .particulars dl { margin: 0; }
+  .particulars div { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font: 15px var(--serif); }
+  .particulars dt { flex: none; font-variant: small-caps; letter-spacing: 0.06em; color: #6b5f4b; }
+  .particulars div::before { content: ''; order: 1; flex: 1; border-bottom: 1px dotted rgb(42 38 32 / 0.4); transform: translateY(-4px); }
+  .particulars dd { order: 2; margin: 0; text-align: right; }
+  .particulars a { color: #9e2b25; overflow-wrap: anywhere; }
+  .finis { margin-top: 40px !important; text-align: center; font: italic 15px var(--serif); letter-spacing: 0.1em; color: #6b5f4b; }
 
   /* A paper page, for research projects: the abstract instead of a screenshot. */
   .paper {
@@ -492,25 +582,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     font: 600 10px var(--sans); letter-spacing: 0.14em; text-transform: uppercase;
     text-align: center; margin-bottom: 10px;
   }
-  .paper.full {
-    margin-top: 8px; padding: 32px clamp(20px, 6vw, 48px); border-radius: 4px;
-    font-size: 16px; box-shadow: 0 1px 0 var(--line), 0 12px 32px rgb(0 0 0 / 0.08);
-  }
-  .paper.full .paper-head { font-size: 12px; margin-bottom: 16px; }
-  .exhibit-no { color: var(--accent); margin-top: 24px; }
-  .sheet h2 { font-size: clamp(26px, 6vw, 34px); margin: 4px 0 0; }
-  .sheet h2 span { font: italic 400 0.6em var(--serif); color: var(--muted); }
-  .lede { font: italic 19px var(--serif); margin: 12px 0 0; }
-  .write-up { font-size: 17px; }
-  .write-up :global(code) { font: 0.85em var(--mono); background: var(--paper); padding: 1px 5px; border-radius: 3px; }
-  .facts {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px 24px;
-    margin: 32px 0 0; padding-top: 24px; border-top: 1px solid var(--line);
-  }
-  .facts dd { margin: 4px 0 0; }
-  .facts a { overflow-wrap: anywhere; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tag, .sheet, .sheet::backdrop { transition: none; }
+    .tag, .sheet::backdrop, .lightbox::backdrop { transition: none; }
   }
 </style>
