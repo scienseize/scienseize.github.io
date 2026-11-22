@@ -219,6 +219,14 @@ let fileCount = 0;
 
   .prose { margin-top: 40px; font-size: 18px; }
   .prose :global(h2) { font-size: 24px; margin-top: 40px; }
+  /* Kitchen's logo and wordmark (written as a span in about.md), from their image: two masks,
+     so the ink follows the theme and the dot on the i takes the site's red. */
+  /* Sized so the wordmark's capital K (37 of 70 px) matches the text's capitals; the 16 px under its
+     baseline is the vertical-align, so it sits on the line like a word. */
+  .prose :global(.kitchen) { position: relative; display: inline-block; height: 1.25em; aspect-ratio: 281 / 70; vertical-align: -0.29em; }
+  .prose :global(.kitchen::before), .prose :global(.kitchen::after) { content: ''; position: absolute; inset: 0; }
+  .prose :global(.kitchen::before) { background: var(--ink); -webkit-mask: url('/kitchen-ink.png') center / contain no-repeat; mask: url('/kitchen-ink.png') center / contain no-repeat; }
+  .prose :global(.kitchen::after) { background: var(--accent); -webkit-mask: url('/kitchen-dot.png') center / contain no-repeat; mask: url('/kitchen-dot.png') center / contain no-repeat; }
   /* Typing on scroll (see the script): one word every 35 ms. */
   .prose :global(.typing .w) { opacity: 0; }
   .prose :global(.typed .w) { opacity: 1; transition: opacity 0.08s calc(var(--i) * 35ms); }

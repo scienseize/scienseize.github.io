@@ -1,4 +1,5 @@
-I build AI applications end to end, from the model to the API to the interface people actually use.
+I work with a small team of friends at <span class="kitchen" role="img" aria-label="Kitchen"></span>. Keeper of too many side projects, open source and otherwise.
+
 ## Things I do
 
 Most of my work sits where machine learning meets real users. I've built a gesture-controlled speech rehearsal mirror, an early-warning dashboard for hospital wards, and walking navigation for Makati that won a hackathon. For my thesis, I measure where the energy goes when a transformer trains.

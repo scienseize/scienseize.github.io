@@ -34,7 +34,12 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <p class="tagline">
     <em>currently</em> <span id="doing" class="doing" aria-hidden="true" data-words={JSON.stringify(site.doing)}>{site.doing[0]}</span><span class="sr">{site.doing[0]}</span>.
   </p>
-  <p>I am a data science student. Engineer. Maintainer of too many small projects.</p>
+  <p class="role">Engineer · Manila, Philippines</p>
+  <p class="thesis">I build AI, then I take it apart.</p>
+  <p>
+    I build AI applications end to end, from the model to the interface people use.
+    Then I study what happens inside: where the energy goes when a transformer trains, and whether a vector search keeps the meaning or only the match.
+  </p>
   <p>
     Get to know <span class="nw"><a href="/about/">more about me</a>,</span> look through the <span class="nw"><a href="#exhibits">evidence</a>,</span>{" "}
     see what's on my <span class="nw"><a href="#library">shelf</a>,</span> read my <span class="nw"><a href="#writing">writing</a>,</span> or say hi at <a href={`mailto:${site.email}`}>{site.email}</a>.
@@ -358,7 +363,10 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   section { margin-top: 72px; }
   .intro { margin-top: 48px; }
   h1 { font-size: clamp(36px, 8vw, 48px); margin: 0; }
-  .tagline { font: 20px var(--serif); margin: 4px 0 24px; color: var(--muted); }
+  .tagline { font: 20px var(--serif); margin: 4px 0 10px; color: var(--muted); }
+  /* Role and place, then a one-line statement, as on nikospasion.com. */
+  .role { margin: 0 0 22px; font: 13px var(--mono); letter-spacing: 0.02em; color: var(--muted); }
+  .thesis { margin: 0 0 12px; font: 600 clamp(22px, 5vw, 26px)/1.25 var(--serif); }
   /* Intro links lean in slightly on hover, like a word under a magnifying glass. */
   .nw { white-space: nowrap; } /* keep a link and its comma on one line */
   .intro p a {

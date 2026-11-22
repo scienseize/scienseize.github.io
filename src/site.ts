@@ -79,6 +79,7 @@ export const timeline: { heading: string; entries: Entry[] }[] = [
       },
       {
         org: 'Huawei ICT Competition 2025–2026',
+        photos: ['/photos/huawei-third-prize.webp'],
         note: 'Computing Track',
         roles: [{ title: 'Third Prize, Philippines', years: 'Dec 2025' }],
       },
@@ -127,5 +128,6 @@ export const library: { title: string; year: number; author: string; kind: 'book
 
 export const photos: { image?: string; caption: string }[] = [
   { image: '/photos/huawei-global-final.webp', caption: 'Grand Prize, Cloud Track · Huawei ICT Competition Global Final, Shenzhen, May 2025' },
+  { image: '/photos/huawei-third-prize.webp', caption: 'Third Prize, Computing Track · 10th Huawei ICT Competition Philippines Awarding, Dec 2025' },
   { image: '/photos/lakad-demo.webp', caption: 'Demoing Lakad to the President of Poland · Poland–Philippines IT Business Summit Hackathon, Oct 2026' },
 ];
