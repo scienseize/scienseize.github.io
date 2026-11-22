@@ -301,14 +301,33 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     n.style.setProperty('--ly', `${e.clientY - r.top}px`);
   }, { passive: true });
 
-  // Stamps thump onto the page the first time they scroll into view.
+  // Stamps thump onto the page the first time they scroll into view. Exhibit stamps are left
+  // to the filing sequence below.
   if (!calm) {
     const io = new IntersectionObserver((entries) => entries.forEach((en) => {
       if (!en.isIntersecting) return;
       en.target.classList.replace('pending', 'stamped');
       io.unobserve(en.target);
     }), { threshold: 0.5 });
-    document.querySelectorAll('.stamp, .file-stamp').forEach((s) => { s.classList.add('pending'); io.observe(s); });
+    document.querySelectorAll('.stamp, .file-stamp').forEach((s) => {
+      if (s.closest('.exhibit')) return;
+      s.classList.add('pending');
+      io.observe(s);
+    });
+
+    // Filed as evidence: when an exhibit scrolls into view, its print develops, its tag swings
+    // on the punched hole, then the stamp thumps. Cards that arrive together follow 120 ms apart.
+    const filing = new IntersectionObserver((entries) => {
+      let n = 0;
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        const card = en.target as HTMLElement;
+        card.style.setProperty('--delay', `${n++ * 120}ms`);
+        card.classList.replace('filing', 'filed');
+        filing.unobserve(card);
+      });
+    }, { threshold: 0.25 });
+    document.querySelectorAll('.exhibit').forEach((c) => { c.classList.add('filing'); filing.observe(c); });
   }
 </script>
 
@@ -353,6 +372,24 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     width: 8px; height: 8px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line);
   }
   .exhibit:hover .tag { transform: rotate(0deg) translateY(-2px); }
+
+  /* Filed as evidence (see the script). Before: blank newsprint, no tag, no stamp.
+     Then, from --delay: the dots grow out of the paper (700 ms), the tag swings in on its hole
+     (900 ms, from +250 ms), and the stamp thumps (from +700 ms). Fill is backwards only, so the
+     hover styles work again once each animation ends. */
+  .exhibit.filing .halftone { filter: brightness(8) contrast(9); opacity: 0; }
+  .exhibit.filing .tag, .exhibit.filing .stamp { opacity: 0; }
+  .exhibit.filed .halftone { animation: develop 700ms ease-out var(--delay) backwards; }
+  .exhibit.filed .tag { transform-origin: 16px 22px; animation: swing 900ms ease-out calc(var(--delay) + 250ms) backwards; }
+  .exhibit.filed .stamp { animation: thump 280ms ease-in calc(var(--delay) + 700ms) backwards; }
+  @keyframes develop { from { filter: brightness(8) contrast(9); opacity: 0; } }
+  @keyframes swing {
+    from { opacity: 0; transform: rotate(-10deg) translateY(-8px); }
+    30% { opacity: 1; transform: rotate(4deg); }
+    55% { transform: rotate(-2.6deg); }
+    78% { transform: rotate(0.6deg); }
+    to { transform: rotate(-0.6deg); }
+  }
   .exhibit:hover h3 { color: var(--accent); }
   .tag .label { color: var(--accent); }
   .tag h3 { font-size: 20px; margin: 4px 0 0; }
@@ -472,7 +509,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     border-radius: 2px; cursor: zoom-in;
     box-shadow: 0 1px 0 var(--line), 0 6px 16px -10px rgb(0 0 0 / 0.5);
   }
-  .halftone { position: absolute; inset: 0; background: #fff; filter: contrast(9); opacity: 0.82; }
+  .halftone { position: absolute; inset: 0; background: #fff; filter: brightness(1) contrast(9); opacity: 0.82; } /* brightness(1) lets the develop animation start from blank paper */
   .halftone img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(1.45) contrast(0.85) blur(1px); }
   /* Screenshots are mostly light UI, so print them darker or they come out as blank paper. */
   .shot .halftone img { filter: grayscale(1) brightness(0.75) contrast(1.4) blur(1px); }
