@@ -1,0 +1,24 @@
+---
+// Timetable rows: title, dotted leader, date. A nod to the A.B.C. railway guide.
+import type { CollectionEntry } from 'astro:content';
+interface Props { posts: CollectionEntry<'writing'>[] }
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+---
+<ul class="timetable">
+  {Astro.props.posts.map((p) => (
+    <li>
+      <a href={`/writing/${p.id}/`}>{p.data.title}</a>
+      <span class="dots" aria-hidden="true"></span>
+      <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .timetable { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: baseline; gap: 8px; padding: 8px 0; }
+  a { text-decoration: none; }
+  a:hover { color: var(--accent); }
+  .dots { flex: 1; border-bottom: 1px dotted var(--muted); opacity: 0.6; transform: translateY(-4px); }
+  time { font: 13px var(--mono); color: var(--muted); white-space: nowrap; }
+</style>

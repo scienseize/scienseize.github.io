@@ -1,0 +1,131 @@
+---
+import { site } from '../site';
+interface Props { title?: string; description?: string }
+const { title, description = `${site.name}: data science student building AI applications end to end.` } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · ${site.name}` : site.name}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Fira+Sans:ital,wght@0,400;0,500;1,400&family=Limelight&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400&display=swap"
+    />
+    <script is:inline>
+      // Set the theme before paint so there is no flash.
+      try {
+        const saved = localStorage.getItem('theme');
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <header class="top">
+      <a class="mark" href="/" aria-label={`${site.name}, home`}>B<span>.</span>C<span>.</span>A<span>.</span></a>
+      <nav>
+        <a href="/about/">About</a>
+        <a href="/#writing">Writing</a>
+        <a href="/#exhibits">Projects</a>
+        <a href="/#library">Library</a>
+        <button id="theme" type="button" aria-label="Toggle dark mode">◐</button>
+      </nav>
+    </header>
+
+    <main><slot /></main>
+
+    <footer>
+      <div>
+        <p>© {new Date().getFullYear()} {site.name}</p>
+        <p class="meta">{site.location}</p>
+      </div>
+      <ul>
+        <li><a href={`mailto:${site.email}`}>Email</a></li>
+        {site.socials.filter((s) => s.href).map((s) => <li><a href={s.href} rel="me">{s.label} ↗</a></li>)}
+      </ul>
+    </footer>
+
+    <script is:inline>
+      document.getElementById('theme').addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('theme', next); } catch {}
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #f7f5ef;
+    --ink: #17160f;
+    --muted: #6b675c;
+    --line: #e2ded2;
+    --paper: #efe8d4;
+    --accent: #9e2b25;
+    --serif: Literata, Georgia, serif;
+    --sans: 'Fira Sans', 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'Fira Code', ui-monospace, Menlo, monospace;
+    --deco: Limelight, Georgia, serif;
+    color-scheme: light;
+  }
+  :root[data-theme='dark'] {
+    --bg: #15140f;
+    --ink: #ece8dc;
+    --muted: #9c978a;
+    --line: #2d2b23;
+    --paper: #24211a;
+    --accent: #d65a4f;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.6 var(--sans);
+  }
+  a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--accent); }
+  img { max-width: 100%; display: block; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.2; }
+
+  main, .top, footer { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 20px; padding-bottom: 20px;
+  }
+  .mark { font: 26px/1 var(--deco); text-decoration: none; letter-spacing: 0.02em; }
+  .mark span { color: var(--accent); }
+  .top nav { display: flex; align-items: center; gap: 16px; font: 13px var(--mono); }
+  .top nav a { text-decoration: none; color: var(--muted); }
+  .top nav a:hover { color: var(--ink); }
+  #theme {
+    font: inherit; color: var(--ink); background: none; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px;
+  }
+  @media (max-width: 480px) { .top nav a:nth-child(4) { display: none; } }
+
+  .label {
+    font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); margin: 0;
+  }
+  .meta { font: 13px var(--mono); color: var(--muted); }
+
+  footer {
+    display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+    margin-top: 96px; padding-top: 24px; padding-bottom: 48px;
+    border-top: 1px solid var(--line); font-size: 14px;
+  }
+  footer p { margin: 0; }
+  footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
+</style>

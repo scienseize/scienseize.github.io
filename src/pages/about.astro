@@ -1,0 +1,65 @@
+---
+import Base from '../layouts/Base.astro';
+import { Content } from '../about.md';
+import { site, about, timeline } from '../site';
+---
+<Base title="About">
+  <h1>About</h1>
+  <p class="sub">{site.role} · {site.location}</p>
+
+  <div class="card">
+    {about.photo ? <img src={about.photo} alt={`Portrait of ${site.name}`} /> : <div class="photo" />}
+    <dl>
+      {about.facts.map((f) => (<><dt class="label">{f.label}</dt><dd>{f.value}</dd></>))}
+      <dt class="label">Elsewhere</dt>
+      <dd>
+        {[{ label: 'Email', href: `mailto:${site.email}` }, ...site.socials.filter((s) => s.href)].map((s, i) => (
+          <>{i > 0 && ' · '}<a href={s.href}>{s.label}</a></>
+        ))}
+      </dd>
+    </dl>
+  </div>
+
+  <div class="prose"><Content /></div>
+
+  {timeline.map((t) => (
+    <section>
+      <h2 class="label">{t.heading}</h2>
+      {t.entries.map((e) => (
+        <div class="entry">
+          <h3>{e.href ? <a href={e.href}>{e.org}</a> : e.org}</h3>
+          {e.note && <p class="note">{e.note}</p>}
+          {e.roles.map((r) => (
+            <p class="role"><span>{r.title}</span><span class="dots" aria-hidden="true"></span><span class="meta">{r.years}</span></p>
+          ))}
+        </div>
+      ))}
+    </section>
+  ))}
+</Base>
+
+<style>
+  h1 { margin: 48px 0 0; font-size: clamp(36px, 8vw, 48px); }
+  .sub { margin: 4px 0 32px; font: 13px var(--mono); color: var(--muted); }
+
+  .card { display: grid; grid-template-columns: 160px 1fr; gap: 24px; align-items: start; }
+  .card img, .photo { width: 160px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 4px; }
+  .photo { background: var(--paper); }
+  dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; align-items: baseline; }
+  dd { margin: 0; }
+  @media (max-width: 480px) { .card { grid-template-columns: 1fr; } }
+
+  .prose { margin-top: 40px; font-size: 18px; }
+  .prose :global(h2) { font-size: 24px; margin-top: 40px; }
+
+  section { margin-top: 56px; }
+  section > .label { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
+  .entry { padding: 12px 0; }
+  .entry + .entry { border-top: 1px dashed var(--line); }
+  h3 { font-size: 19px; margin: 0 0 4px; }
+  h3 a { text-decoration: none; }
+  .note { margin: -2px 0 6px; font: italic 15px var(--serif); color: var(--muted); }
+  .role { display: flex; align-items: baseline; gap: 8px; margin: 2px 0; color: var(--muted); }
+  .role .dots { flex: 1; border-bottom: 1px dotted var(--muted); opacity: 0.5; transform: translateY(-4px); }
+  .role .meta { white-space: nowrap; }
+</style>

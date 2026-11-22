@@ -1,0 +1,32 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('writing', (p) => !p.data.draft);
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<Base title={post.data.title} description={post.data.description}>
+  <article>
+    <p class="meta"><a href="/writing/">Writing</a> · {post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+    <h1>{post.data.title}</h1>
+    <div class="prose"><Content /></div>
+  </article>
+</Base>
+
+<style>
+  article { margin-top: 48px; }
+  .meta a { text-decoration: none; }
+  h1 { font-size: clamp(32px, 7vw, 42px); margin: 8px 0 32px; }
+  .prose { font-size: 18px; }
+  .prose :global(h2) { font-size: 26px; margin-top: 48px; }
+  .prose :global(code) { font: 0.85em var(--mono); background: var(--paper); padding: 1px 5px; border-radius: 3px; }
+  .prose :global(pre) { padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 14px; }
+  .prose :global(pre code) { background: none; padding: 0; }
+  .prose :global(blockquote) { margin: 24px 0; padding-left: 16px; border-left: 2px solid var(--accent); font-style: italic; font-family: var(--serif); }
+  .prose :global(img) { border-radius: 4px; margin: 24px 0; }
+</style>
