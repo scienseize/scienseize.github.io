@@ -1,12 +1,13 @@
 ---
 title: Hexagames
-order: 5
+order: 6
 kind: Realtime web app
 year: '2026'
 blurb: Fair rotation, live scoreboard and player stats for pick-up basketball nights.
 images: [/projects/hexagames-queue.webp, /projects/hexagames-leaderboard.webp]
 tools: [Cloudflare Workers, D1, JavaScript]
 role: Creator
+href: https://github.com/scienseize/pickup-rotation
 status: Used every game night
 ---
 

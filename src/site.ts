@@ -39,7 +39,9 @@ export const about = {
 };
 
 // note: optional subtext under the organization name.
-type Entry = { org: string; note?: string; href?: string; roles: { title: string; years: string }[] };
+// paper: the title of the paper an award was for, shown in quotes under the organization.
+// project (a project slug) and photos (paths from `photos` below) fill the case file that opens from a Recognition entry.
+type Entry = { org: string; note?: string; paper?: string; href?: string; project?: string; photos?: string[]; roles: { title: string; years: string }[] };
 
 export const timeline: { heading: string; entries: Entry[] }[] = [
   {
@@ -60,7 +62,19 @@ export const timeline: { heading: string; entries: Entry[] }[] = [
     heading: 'Recognition',
     entries: [
       {
+        org: 'I-RISE Conference 2026',
+        project: 'energy-anatomy',
+        note: 'International Research and Innovation for Sustainable Education',
+        paper: 'A Comparative Analysis of Transformer Energy Consumption: Waste Attribution and Architectural Optimization for Sustainable Large Language Model Pretraining',
+        roles: [
+          { title: 'Best Paper Award', years: 'Nov 2026' },
+          { title: 'Student Best Paper Presentation Award', years: 'Nov 2026' },
+        ],
+      },
+      {
         org: '5th Poland–Philippines IT Business Summit Hackathon',
+        project: 'lakad',
+        photos: ['/photos/lakad-demo.webp'],
         roles: [{ title: 'Winner, team Lakad Kinetic Development', years: 'Oct 2026' }],
       },
       {
@@ -70,11 +84,14 @@ export const timeline: { heading: string; entries: Entry[] }[] = [
       },
       {
         org: 'I-RISE Conference 2025',
+        project: 'semiotic-validity',
         note: 'International Research and Innovation for Sustainable Education',
+        paper: 'Quantifying Semiotic Validity: Measuring Conceptual Depth in Vector Retrieval Systems',
         roles: [{ title: 'Student Best Paper Presentation Award', years: 'Nov 2025' }],
       },
       {
         org: 'Huawei ICT Competition 2024–2025',
+        photos: ['/photos/huawei-global-final.webp'],
         note: 'Cloud Track',
         roles: [
           { title: 'Grand Prize, Global Finals, Shenzhen, China', years: 'May 2025' },

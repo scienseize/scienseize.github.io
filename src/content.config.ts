@@ -25,6 +25,9 @@ const projects = defineCollection({
     role: z.string().optional(),
     status: z.string().optional(),
     href: z.string().url().optional(), // source code or live link
+    links: z.array(z.object({ label: z.string(), href: z.string().url() })).default([]), // more links, each with its own label
+    award: z.string().optional(), // short award name; shows a commendation seal on the card
+    summary: z.string().optional(), // two or three sentences for the case file on the About page
     // Paths in public/, e.g. /projects/palmcards.webp. The card shows the first one; the sheet shows all.
     images: z.array(z.string()).default([]),
     cover: z.string().optional(), // card image when it should not be the first of `images`

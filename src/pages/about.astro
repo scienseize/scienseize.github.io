@@ -1,7 +1,22 @@
 ---
 import Base from '../layouts/Base.astro';
 import { Content } from '../about.md';
-import { site, about, timeline } from '../site';
+import { getCollection } from 'astro:content';
+import { site, about, timeline, photos } from '../site';
+
+// A Recognition entry with a project or event photos gets a small taped print. The print opens a
+// case file on this page: the project's screenshot (or a title page for a paper), a short summary,
+// and photos of the event.
+const projects = new Map((await getCollection('projects')).map((p) => [p.id, p.data]));
+type Entry = (typeof timeline)[number]['entries'][number];
+const fileOf = (e: Entry) => {
+  const p = e.project ? projects.get(e.project) : undefined;
+  const shots = (e.photos ?? []).map((src) => ({ src, caption: photos.find((ph) => ph.image === src)?.caption ?? '' }));
+  if (!p && !shots.length) return undefined;
+  const shot = p && (p.cover ?? p.images[0]);
+  return { title: p?.title ?? e.org, paper: p && !shot ? (e.paper ?? p.title) : undefined, shot, summary: p?.summary ?? p?.blurb, shots };
+};
+let fileCount = 0;
 ---
 <Base title="About">
   <h1>About</h1>
@@ -31,23 +46,84 @@ import { site, about, timeline } from '../site';
 
   <div class="prose"><Content /></div>
 
-  {timeline.map((t) => (
-    <section>
-      <h2 class="label">{t.heading}</h2>
-      {t.entries.map((e) => (
-        <div class="entry">
-          <h3>{e.href ? <a href={e.href}>{e.org}</a> : e.org}</h3>
-          {e.note && <p class="note">{e.note}</p>}
-          {e.roles.map((r) => (
-            <p class="role"><span>{r.title}</span><span class="dots" aria-hidden="true"></span><span class="meta">{r.years}</span></p>
-          ))}
-        </div>
-      ))}
-    </section>
-  ))}
+  {timeline.map((t) => {
+    const thumbed = t.entries.some((e) => fileOf(e)); // keep text aligned across the section
+    return (
+      <section>
+        <h2 class="label">{t.heading}</h2>
+        {t.entries.map((e) => {
+          const f = fileOf(e);
+          const id = f && `file-${++fileCount}`;
+          return (
+            <div class:list={['entry', { thumbed }]}>
+              {thumbed && (f
+                ? <button type="button" class="clip" data-file={id} aria-haspopup="dialog" aria-label={`Open the case file: ${f.title}`}>
+                    {f.shot ? <img src={f.shot} alt="" loading="lazy" />
+                      : f.paper ? <span class="clip-page" />
+                      : <img src={f.shots[0].src} alt="" loading="lazy" />}
+                  </button>
+                : <span />)}
+              {f && (
+                <dialog class="file" id={id} aria-labelledby={`${id}-title`}>
+                  <div class="file-inner">
+                    <header class="file-head">
+                      <span>Recognition · Case file</span>
+                      <button type="button" class="file-close" data-close>Close the file</button>
+                    </header>
+                    {f.title !== e.org && <p class="file-org">{e.org}</p>}
+                    <h2 id={`${id}-title`}>{f.title}</h2>
+                    <ul class="file-awards">
+                      {e.roles.map((r) => <li><span>{r.title}</span><span class="meta">{r.years}</span></li>)}
+                    </ul>
+                    {f.shot && (
+                      <figure class="file-print">
+                        <img src={f.shot} alt={e.paper ? `A figure from “${e.paper}”` : `Screenshot of ${f.title}`} loading="lazy" />
+                        {e.paper && <figcaption>From “{e.paper}”</figcaption>}
+                      </figure>
+                    )}
+                    {f.paper && (
+                      <figure class="file-print file-paper" aria-label={`Title page of “${f.paper}”`}>
+                        <span class="file-paper-title">{f.paper}</span>
+                      </figure>
+                    )}
+                    {f.summary && <p class="file-summary">{f.summary}</p>}
+                    {f.shots.length > 0 && (
+                      <div class="file-photos">
+                        {f.shots.map((ph) => (
+                          <figure class="file-print"><img src={ph.src} alt={ph.caption} loading="lazy" /><figcaption>{ph.caption}</figcaption></figure>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </dialog>
+              )}
+              <div>
+                <h3>{e.href ? <a href={e.href}>{e.org}</a> : e.org}</h3>
+                {e.note && <p class="note">{e.note}</p>}
+                {e.paper && <p class="paper-title">“{e.paper}”</p>}
+                {e.roles.map((r) => (
+                  <p class="role"><span>{r.title}</span><span class="dots" aria-hidden="true"></span><span class="meta">{r.years}</span></p>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    );
+  })}
 </Base>
 
 <script>
+  // Recognition case files: a print opens its file; the close button, Esc or a click outside closes it.
+  document.querySelectorAll<HTMLButtonElement>('[data-file]').forEach((btn) => {
+    const file = document.getElementById(btn.dataset.file!) as HTMLDialogElement;
+    btn.addEventListener('click', () => file.showModal());
+    file.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      if (t === file || t.closest('[data-close]')) file.close(); // `t === file` is the backdrop
+    });
+  });
+
   // Red string, as on an evidence board: from a pin in the photo to a pin by each fact.
   // The ends are measured, so it redraws when the layout changes (side by side, or stacked on phones).
   const card = document.querySelector<HTMLElement>('.card')!;
@@ -154,6 +230,93 @@ import { site, about, timeline } from '../site';
   h3 { font-size: 19px; margin: 0 0 4px; }
   h3 a { text-decoration: none; }
   .note { margin: -2px 0 6px; font: italic 15px var(--serif); color: var(--muted); }
+  .paper-title { margin: 0 0 6px; font: italic 15px/1.45 var(--serif); }
+
+  /* Recognition thumbnails: a small print of the project, as in the portrait, held on with a strip
+     of red evidence tape. The whole print links to the project. */
+  .entry.thumbed { display: grid; grid-template-columns: 64px 1fr; gap: 18px; align-items: start; }
+  .clip {
+    position: relative; display: block; width: 100%; margin-top: 10px; padding: 4px; border: 0; font: inherit; background: #f4efe2;
+    transform: rotate(-3deg); transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 14px -8px rgb(0 0 0 / 0.5);
+  }
+  .entry:nth-of-type(even) .clip { transform: rotate(2.5deg); }
+  .clip:is(:hover, :focus-visible) { transform: rotate(0deg) scale(1.08); }
+  .clip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .clip::before {
+    content: 'Evidence'; position: absolute; z-index: 1; top: -7px; left: 50%; width: 58px; height: 13px;
+    transform: translateX(-50%) rotate(-5deg);
+    font: 600 6.5px/13px var(--mono); letter-spacing: 0.18em; text-transform: uppercase; text-align: center; color: #f6efe0;
+    background: linear-gradient(rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 55%), #a8302a;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    clip-path: polygon(0 10%, 5% 0, 9% 12%, 13% 2%, 87% 0, 91% 10%, 95% 1%, 100% 12%, 100% 90%, 95% 100%, 91% 88%, 87% 100%, 13% 98%, 9% 88%, 5% 100%, 0 90%);
+  }
+  .clip img, .clip-page { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; filter: sepia(0.12) saturate(0.92); }
+  /* A tiny printed page for a paper: a title rule and lines of type. */
+  .clip-page {
+    background:
+      linear-gradient(rgb(23 22 15 / 0.7), rgb(23 22 15 / 0.7)) 50% 7px / 55% 2px no-repeat,
+      repeating-linear-gradient(transparent 0 4px, rgb(23 22 15 / 0.3) 4px 5px) 5px 14px / calc(100% - 10px) calc(100% - 20px) no-repeat,
+      #fffdf8;
+  }
+  @media (prefers-reduced-motion: reduce) { .clip { transition: none; } }
+
+  /* The case file: a sheet of old paper over the dimmed page, like the project sheets on the home page. */
+  .file {
+    width: min(560px, calc(100% - 32px)); max-width: none; max-height: 88dvh; margin: auto; padding: 0; border: 0;
+    border-radius: 3px; color: #2a2620; outline: none;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
+      #f3ecda;
+    box-shadow: inset 0 0 70px rgb(120 85 35 / 0.2), 0 20px 50px rgb(0 0 0 / 0.4);
+  }
+  .file[open] { animation: file-in 0.35s cubic-bezier(0.2, 0.9, 0.2, 1); }
+  @keyframes file-in { from { opacity: 0; transform: translateY(14px) rotate(-1deg) scale(0.97); } }
+  .file::backdrop { background: radial-gradient(ellipse at center, rgb(15 14 10 / 0.5), rgb(15 14 10 / 0.82)); }
+  :global(html:has(dialog.file[open])) { overflow: hidden; }
+  .file-inner { max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; padding: 0 clamp(20px, 6vw, 40px) 32px; }
+  .file-head {
+    position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 16px 0 10px; background: #f3ecda; border-bottom: 1px solid rgb(42 38 32 / 0.25);
+    font: 500 11px var(--serif); letter-spacing: 0.16em; text-transform: uppercase; color: #6b5f4b;
+  }
+  .file-close {
+    flex: none; padding: 2px 0; border: 0; border-bottom: 1px solid currentColor; background: none;
+    font: italic 14px var(--serif); letter-spacing: 0; text-transform: none; color: #9e2b25;
+  }
+  .file-close:hover { color: #6f1c18; }
+  .file-close:focus-visible { outline: 2px solid #9e2b25; outline-offset: 4px; }
+  .file-org { margin: 22px 0 0; font: italic 14px var(--serif); color: #6b5f4b; }
+  .file h2 { margin: 22px 0 0; }
+  .file-org + h2 { margin-top: 4px; }
+  .file h2 { font: 600 clamp(24px, 6vw, 30px)/1.15 var(--serif); color: #1f1c16; }
+  .file-awards { list-style: none; margin: 10px 0 0; padding: 0; }
+  .file-awards li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font: 15px var(--serif); border-bottom: 1px dotted rgb(42 38 32 / 0.3); }
+  .file-awards .meta { color: #6b5f4b; white-space: nowrap; }
+  /* Prints in the file: a paper border, a slight tilt and a strip of evidence tape, as on the thumbnails. */
+  .file-print { position: relative; margin: 30px auto 0; padding: 8px; background: #fbf7ec; transform: rotate(-1deg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15), 0 10px 20px -12px rgb(60 40 15 / 0.6); }
+  .file-print::before {
+    content: 'Evidence'; position: absolute; z-index: 1; top: -9px; left: 50%; width: 92px; height: 18px;
+    transform: translateX(-50%) rotate(-3deg);
+    font: 600 8px/18px var(--mono); letter-spacing: 0.22em; text-transform: uppercase; text-align: center; color: #f6efe0;
+    background: linear-gradient(rgb(255 255 255 / 0.18), rgb(255 255 255 / 0) 55%), #a8302a; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    clip-path: polygon(0 10%, 4% 0, 7% 12%, 10% 2%, 90% 0, 93% 10%, 96% 1%, 100% 12%, 100% 90%, 96% 100%, 93% 88%, 90% 100%, 10% 98%, 7% 88%, 4% 100%, 0 90%);
+  }
+  .file-print img { display: block; width: 100%; filter: sepia(0.12); }
+  .file-print figcaption { margin-top: 8px; text-align: center; font: italic 13px/1.4 var(--serif); color: #4a4234; }
+  /* A paper has no screenshot, so the file shows its title page. */
+  .file-paper { width: min(300px, 80%); }
+  .file-paper-title {
+    display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 5; padding: 18px;
+    text-align: center; font: 600 15px/1.35 var(--serif); color: #1f1c16;
+    background:
+      repeating-linear-gradient(transparent 0 7px, rgb(23 22 15 / 0.14) 7px 8px) 18px 72% / calc(100% - 36px) 22% no-repeat,
+      #fffdf8;
+  }
+  .file-summary { margin: 28px 0 0; font: 17px/1.7 var(--serif); }
+  .file-photos { display: grid; gap: 8px; }
+  .file-photos .file-print:nth-child(even) { transform: rotate(1.2deg); }
+  @media (prefers-reduced-motion: reduce) { .file[open] { animation: none; } }
   .role { display: flex; align-items: baseline; gap: 8px; margin: 2px 0; color: var(--muted); }
   .role .dots { flex: 1; border-bottom: 1px dotted var(--muted); opacity: 0.5; transform: translateY(-4px); }
   .role .meta { white-space: nowrap; }

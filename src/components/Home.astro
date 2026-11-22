@@ -13,6 +13,14 @@ const projects = await Promise.all(
     .map(async (p) => ({ id: p.id, ...p.data, Content: (await render(p)).Content })),
 );
 const letter = (i: number) => String.fromCharCode(65 + i); // Exhibit A, B, C...
+// The commendation seal for award-winning projects: a serrated foil disc and a star, centred at (32, 30).
+const ring = (n: number, outer: number, inner: number, turn = 0) =>
+  Array.from({ length: n * 2 }, (_, k) => {
+    const r = k % 2 ? inner : outer, a = (k * Math.PI) / n + turn;
+    return `${(32 + r * Math.sin(a)).toFixed(2)},${(30 - r * Math.cos(a)).toFixed(2)}`;
+  }).join(' ');
+const burst = ring(24, 29, 26);
+const star = ring(5, 10, 4);
 const roman = (n: number) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] ?? String(n); // chapters and plates
 const initials = (name: string) => name.split(/[\s-]+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const caption = (b: (typeof library)[number], i: number) =>
@@ -52,6 +60,18 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
               </div>
             : <div class="shot"><span class="meta">screenshot pending</span></div>}
         <div class="tag">
+          {p.award && (
+            <span class="seal" title={p.award}>
+              <svg viewBox="0 0 64 78" aria-hidden="true">
+                <path class="ribbon" d="M23 40 13 76l9-6 7 7 5-35zM41 40l10 36-9-6-7 7-5-35z" />
+                <polygon class="foil" points={burst} />
+                <circle class="ring" cx="32" cy="30" r="20" />
+                <circle class="ring fine" cx="32" cy="30" r="17" />
+                <polygon class="star" points={star} />
+              </svg>
+              <span class="sr">Award: {p.award}</span>
+            </span>
+          )}
           <p class="label">Exhibit {letter(i)} · {p.year}</p>
           <h3>{p.title}</h3>
           <p class="kind">{p.kind}</p>
@@ -145,7 +165,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
           <div><dt>Instruments</dt><dd>{p.tools.join(' · ')}</dd></div>
           <div><dt>Year</dt><dd>{p.year}</dd></div>
           {p.status && <div><dt>Status</dt><dd>{p.status}</dd></div>}
-          {p.href && <div><dt>Source</dt><dd><a href={p.href}>{p.href.replace(/^https?:\/\/(www\.)?/, '')}</a></dd></div>}
+          {[...(p.href ? [{ label: 'Source', href: p.href }] : []), ...p.links].map((l) => (
+            <div><dt>{l.label}</dt><dd><a href={l.href}>{l.href.replace(/^https?:\/\/(www\.)?/, '')}</a></dd></div>
+          ))}
         </dl>
       </section>
       <p class="finis">Finis.</p>
@@ -372,6 +394,18 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     width: 8px; height: 8px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line);
   }
   .exhibit:hover .tag { transform: rotate(0deg) translateY(-2px); }
+
+  /* Commendation seal on award-winning projects: brass foil with oxblood ribbon tails, pressed onto
+     the tag's corner like the seal on a police commendation. */
+  .seal { position: absolute; z-index: 1; top: -30px; right: -6px; width: 46px; --tilt: 9deg; transform: rotate(var(--tilt)); filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3)); }
+  .seal svg { display: block; width: 100%; overflow: visible; }
+  .seal .ribbon { fill: #9e2b25; stroke: #5e1713; stroke-width: 0.8; }
+  .seal .foil { fill: #c9a24a; stroke: #6f531a; stroke-width: 0.8; }
+  .seal .ring { fill: none; stroke: #6f531a; stroke-width: 1; }
+  .seal .ring.fine { stroke-width: 0.5; stroke-dasharray: 1.2 1.4; }
+  .seal .star { fill: #6f531a; }
+  .exhibit.filing .seal { opacity: 0; }
+  .exhibit.filed .seal { animation: thump 280ms ease-in calc(var(--delay) + 1150ms) backwards; }
 
   /* Filed as evidence (see the script). Before: blank newsprint, no tag, no stamp.
      Then, from --delay: the dots grow out of the paper (700 ms), the tag swings in on its hole
