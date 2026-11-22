@@ -11,7 +11,7 @@ import { site, about, timeline } from '../site';
     {about.photo ? <img src={about.photo} alt={`Portrait of ${site.name}`} /> : <div class="photo" />}
     <dl>
       {about.facts.map((f) => (<><dt class="label">{f.label}</dt><dd>{f.value}</dd></>))}
-      <dt class="label">Elsewhere</dt>
+      <dt class="label">Contact</dt>
       <dd>
         {[{ label: 'Email', href: `mailto:${site.email}` }, ...site.socials.filter((s) => s.href)].map((s, i) => (
           <>{i > 0 && ' · '}<a href={s.href}>{s.label}</a></>

@@ -9,6 +9,7 @@ const years = [...new Set(posts.map((p) => p.data.date.getFullYear()))];
 ---
 <Base title="Writing">
   <h1>Writing</h1>
+  {posts.length === 0 && <p class="meta">No posts yet. The first case notes are on their way.</p>}
   {years.map((y) => (
     <section>
       <h2 class="label">{y}</h2>

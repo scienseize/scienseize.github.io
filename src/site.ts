@@ -1,5 +1,5 @@
 // All the site content that is not a blog post lives here.
-// To add a screenshot or photo: put the file in public/ and set `image` to its path, e.g. '/projects/palmcards.png'.
+// Projects live in src/content/projects/*.md. Photos for the home page go in public/.
 
 export const site = {
   name: 'Bill Alcantara',
@@ -30,9 +30,9 @@ export const site = {
 
 // About page. The long text is in src/about.md; these are the short facts and the timeline.
 export const about = {
-  photo: '', // e.g. '/about/portrait.jpg' in public/. Empty shows a placeholder.
+  photo: '/about/portrait.webp', // in public/. Empty shows a placeholder.
   facts: [
-    { label: 'Now', value: 'Data science student, iACADEMY' },
+    { label: 'Current', value: 'Senior Data Science Student, iACADEMY' },
     { label: 'Based', value: 'Manila, PH (UTC+8)' },
   ],
 };
@@ -91,69 +91,23 @@ export const timeline: { heading: string; entries: Entry[] }[] = [
   },
 ];
 
-export type Project = {
-  title: string;
-  kind: string;
-  year: string;
-  blurb: string;
-  tools: string[];
-  href?: string;
-  image?: string;
-};
-
-export const projects: Project[] = [
-  {
-    title: 'PalmCards',
-    kind: 'AI · computer vision',
-    year: '2026',
-    blurb: 'A gesture-controlled editor and rehearsal mirror. Edit your notes with your hands, then practice out loud and compare takes.',
-    tools: ['MediaPipe', 'Ollama', 'Claude API'],
-    href: 'https://github.com/scienseize/Palmcards',
-  },
-  {
-    title: 'Energy Anatomy',
-    kind: 'Thesis · ML systems',
-    year: '2026',
-    blurb: 'Roofline-based energy profiling of transformer components, from Pythia 160M to 6.9B on a T4.',
-    tools: ['PyTorch', 'Zeus', 'NVML'],
-    href: 'https://github.com/scienseize/energy-anatomy',
-  },
-  {
-    title: 'Lakad',
-    kind: 'Hackathon winner',
-    year: '2026',
-    blurb: 'Walking navigation and crowd reporting for Makati. Winner at the 5th Poland–Philippines IT Business Summit Hackathon.',
-    tools: ['Flutter', 'FastAPI', 'React', 'Mapbox'],
-    href: 'https://github.com/garcieee/LKD',
-  },
-  {
-    title: 'BioSentry Intelligence',
-    kind: 'Clinical triage',
-    year: '2026',
-    blurb: 'An early-warning dashboard for hospital wards. It ranks patients by NEWS2 so clinicians know who to see first.',
-    tools: ['FastAPI', 'React', 'TypeScript'],
-  },
-  {
-    title: 'Hexagames',
-    kind: 'Realtime web app',
-    year: '2026',
-    blurb: 'Fair rotation, live scoreboard and player stats for pick-up basketball nights. Syncs across laptops and works offline.',
-    tools: ['Cloudflare Workers', 'D1', 'JavaScript'],
-  },
-];
-
-// kind sets the spine shape: books are tall, manga and manhwa volumes are short and thin.
-export const library: { title: string; author: string; kind: 'book' | 'manga' | 'manhwa'; color: string }[] = [
-  { title: 'The A.B.C. Murders', author: 'Agatha Christie', kind: 'book', color: '#9E2B25' },
-  { title: 'Manga title', author: 'Author', kind: 'manga', color: '#E8E2D0' }, // TODO
-  { title: 'Book title', author: 'Author', kind: 'book', color: '#2F4A3A' }, // TODO
-  { title: 'Manhwa title', author: 'Author', kind: 'manhwa', color: '#2B3A55' }, // TODO
-  { title: 'Manga title', author: 'Author', kind: 'manga', color: '#C9A227' }, // TODO
-  { title: 'Book title', author: 'Author', kind: 'book', color: '#5A3E5D' }, // TODO
+// The shelf on the home page. cover is in public/library/; color and ink are the spine and its text.
+// year is the first publication; older books show more wear.
+export const library: { title: string; year: number; author: string; kind: 'book' | 'manga' | 'manhwa'; cover: string; color: string; ink: string }[] = [
+  { title: 'Sun and Steel', year: 1968, author: 'Yukio Mishima', kind: 'book', cover: '/library/sun-and-steel.webp', color: '#C8322A', ink: '#fff' },
+  { title: 'Dungeon Crawler Carl', year: 2020, author: 'Matt Dinniman', kind: 'book', cover: '/library/dungeon-crawler-carl.webp', color: '#F2C21B', ink: '#17160f' },
+  { title: "We'll Prescribe You a Cat", year: 2023, author: 'Syou Ishida', kind: 'book', cover: '/library/prescribe-a-cat.webp', color: '#EFEAE0', ink: '#17160f' },
+  { title: 'Strange Pictures', year: 2022, author: 'Uketsu', kind: 'book', cover: '/library/strange-pictures.webp', color: '#7CCB4A', ink: '#17160f' },
+  { title: 'Eternally Regressing Knight', year: 2024, author: 'Soulpung', kind: 'manhwa', cover: '/library/eternally-regressing-knight.webp', color: '#5B4030', ink: '#fff' },
+  { title: 'Raising Villains the Right Way', year: 2025, author: 'Bomhanbangul', kind: 'manhwa', cover: '/library/raising-villains.webp', color: '#3A1E3A', ink: '#fff' },
+  { title: 'Star Embracing Swordmaster', year: 2023, author: 'Q10', kind: 'manhwa', cover: '/library/star-embracing-swordmaster.webp', color: '#1E4F7A', ink: '#fff' },
+  { title: 'Got Dropped into a Ghost Story, Still Gotta Work', year: 2026, author: 'Baek Deok-su', kind: 'manhwa', cover: '/library/ghost-story-still-gotta-work.webp', color: '#2A2A30', ink: '#fff' },
+  { title: '20th Century Boys', year: 1999, author: 'Naoki Urasawa', kind: 'manga', cover: '/library/20th-century-boys.webp', color: '#E4DED0', ink: '#17160f' },
+  { title: 'Katekyo Hitman Reborn!', year: 2004, author: 'Akira Amano', kind: 'manga', cover: '/library/katekyo-hitman-reborn.webp', color: '#F2D23A', ink: '#17160f' },
+  { title: 'Detective Conan', year: 1994, author: 'Gosho Aoyama', kind: 'manga', cover: '/library/detective-conan.webp', color: '#D9A441', ink: '#17160f' },
 ];
 
 export const photos: { image?: string; caption: string }[] = [
-  { caption: 'Photo caption' }, // TODO
-  { caption: 'Photo caption' }, // TODO
-  { caption: 'Photo caption' }, // TODO
+  { image: '/photos/huawei-global-final.webp', caption: 'Grand Prize, Cloud Track · Huawei ICT Competition Global Final, Shenzhen, May 2025' },
+  { image: '/photos/lakad-demo.webp', caption: 'Demoing Lakad to the President of Poland · Poland–Philippines IT Business Summit Hackathon, Oct 2026' },
 ];
