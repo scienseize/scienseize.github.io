@@ -11,11 +11,10 @@ import { site, about, timeline } from '../site';
       <div class="print">
         {about.photo ? <img src={about.photo} alt={`Portrait of ${site.name}`} /> : <div class="photo" />}
       </div>
-      <figcaption class="suspect">
-        {site.name}
-        <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M34 13C78 2 162 4 188 22c16 12-8 30-78 33C50 58 8 48 10 32 12 18 52 7 124 9" />
-        </svg>
+      <figcaption class="namesake">
+        {site.name.split(' ').map((w, i, all) => (
+          <><b>{w[0]}</b>{w.slice(1).replace('.', '')}{(w.endsWith('.') || i === all.length - 1) && <i>.</i>}{i < all.length - 1 && ' '}</>
+        ))}
       </figcaption>
     </figure>
     <dl>
@@ -134,12 +133,10 @@ import { site, about, timeline } from '../site';
   }
   .print img, .photo { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; filter: sepia(0.12) saturate(0.92); }
   .photo { background: var(--paper); }
-  .suspect {
-    position: relative; width: max-content; margin: 22px auto 0; padding: 4px 10px;
-    font: 18px/1.2 var(--deco); letter-spacing: 0.02em; color: var(--accent); transform: rotate(-1.5deg);
-  }
-  .suspect svg { position: absolute; top: -10px; left: -18px; width: calc(100% + 36px); height: calc(100% + 20px); overflow: visible; }
-  .suspect path { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  /* The name set like the B.C.A. mark: the initials in ink, the rest quieter, and the mark's red dots. */
+  .namesake { width: max-content; margin: 22px auto 0; font: 17px/1 var(--deco); letter-spacing: 0.02em; color: var(--muted); }
+  .namesake b { font-weight: 400; font-size: 1.5em; color: var(--ink); }
+  .namesake i { font-style: normal; font-size: 1.5em; color: var(--accent); }
   dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; align-items: baseline; }
   dd { margin: 0; }
   @media (max-width: 480px) { .card { grid-template-columns: 1fr; } .evidence { margin-inline: auto; } }

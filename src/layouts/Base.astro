@@ -118,10 +118,12 @@ const links = [
     --sans: 'Fira Sans', 'Helvetica Neue', Arial, sans-serif;
     --mono: 'Fira Code', ui-monospace, Menlo, monospace;
     --deco: Limelight, Georgia, serif;
-    /* Flashlight: warm light in the beam, a faint dimming outside it. */
-    --beam: rgb(255 226 160 / 0.12);
-    --beam-edge: rgb(255 226 160 / 0.05);
-    --beam-dark: rgb(23 22 15 / 0.05);
+    /* Flashlight: warm light in the beam, dimming outside it. In light mode the layer multiplies,
+       so the beam tints the paper warm without washing out the text. */
+    --beam: rgb(255 212 135 / 0.4);
+    --beam-edge: rgb(255 212 135 / 0.14);
+    --beam-dark: rgb(70 58 36 / 0.13);
+    --beam-blend: multiply;
     color-scheme: light;
   }
   :root[data-theme='dark'] {
@@ -134,10 +136,12 @@ const links = [
     --beam: rgb(255 220 150 / 0.11);
     --beam-edge: rgb(255 220 150 / 0.04);
     --beam-dark: rgb(0 0 0 / 0.22);
+    --beam-blend: normal;
     color-scheme: dark;
   }
   .flashlight {
     position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+    mix-blend-mode: var(--beam-blend);
     background: radial-gradient(circle 170px at var(--fx, -999px) var(--fy, -999px),
       var(--beam), var(--beam-edge) 50%, transparent 72%, var(--beam-dark));
   }
