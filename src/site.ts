@@ -41,21 +41,23 @@ export const about = {
 // note: optional subtext under the organization name.
 // paper: the title of the paper an award was for, shown in quotes under the organization.
 // project (a project slug) and photos (paths from `photos` below) fill the case file that opens from a Recognition entry.
-type Entry = { org: string; note?: string; paper?: string; href?: string; project?: string; photos?: string[]; roles: { title: string; years: string }[] };
+// peek: a photo that shows when the organization's name is hovered or clicked (ratio as 'width / height', default 3 / 2).
+type Entry = { org: string; note?: string; paper?: string; href?: string; project?: string; photos?: string[]; peek?: { src: string; caption: string; ratio?: string }; roles: { title: string; years: string }[] };
 
 export const timeline: { heading: string; entries: Entry[] }[] = [
   {
     heading: 'Experience',
     entries: [
-      { org: 'Nestlé Philippines', roles: [{ title: 'Sales Analytics and Process Optimization Intern', years: 'Sep—Dec 2025' }] },
+      { org: 'Nestlé Philippines', peek: { src: '/about/nestle.webp', caption: 'Nestlé Philippines · December 2025', ratio: '787 / 1400' }, roles: [{ title: 'Sales Analytics and Process Optimization Intern', years: 'Sep—Dec 2025' }] },
       { org: 'Eskwelabs', roles: [{ title: 'Data Analytics Fellow', years: 'Jan—Apr 2023' }] },
     ],
   },
   {
     heading: 'Leadership',
     entries: [
-      { org: 'iSO', note: 'iACADEMY Sports Organization', roles: [{ title: 'Sports Manager', years: 'Sep 2026—now' }] },
-      { org: 'iMPACT', note: 'Humanitarian and community development organization of iACADEMY', roles: [{ title: 'Vice President, Internal', years: 'Sep 2026—now' }] },
+      { org: 'iSO', note: 'iACADEMY Sports Organization', peek: { src: '/about/iso.webp', caption: 'A Hexagames night we organized · iACADEMY, November 12, 2026', ratio: '4 / 3' }, roles: [{ title: 'Sports Manager', years: 'Sep 2026—now' }] },
+      { org: 'iMPACT', note: 'Humanitarian and community development organization of iACADEMY',
+        peek: { src: '/about/impact.webp', caption: 'Beyond the Fare: relief packages for jeepney drivers hit by diesel price hikes · October 2026 · Photo by Jayden Ong, The ArcHives', ratio: '16 / 9' }, roles: [{ title: 'Vice President, Internal', years: 'Sep 2026—now' }] },
     ],
   },
   {

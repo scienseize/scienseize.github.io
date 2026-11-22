@@ -45,6 +45,7 @@ let fileCount = 0;
   </div>
 
   <div class="prose"><Content /></div>
+  <figure class="peek-card" hidden aria-hidden="true"><img alt="" /><video muted loop playsinline preload="none" hidden></video><figcaption></figcaption></figure>
 
   {timeline.map((t) => {
     const thumbed = t.entries.some((e) => fileOf(e)); // keep text aligned across the section
@@ -98,7 +99,10 @@ let fileCount = 0;
                 </dialog>
               )}
               <div>
-                <h3>{e.href ? <a href={e.href}>{e.org}</a> : e.org}</h3>
+                <h3>
+                  {e.peek ? <a class="peek" href={e.peek.src} data-caption={e.peek.caption} data-ratio={e.peek.ratio}>{e.org}</a>
+                    : e.href ? <a href={e.href}>{e.org}</a> : e.org}
+                </h3>
                 {e.note && <p class="note">{e.note}</p>}
                 {e.paper && <p class="paper-title">“{e.paper}”</p>}
                 {e.roles.map((r) => (
@@ -114,6 +118,65 @@ let fileCount = 0;
 </Base>
 
 <script>
+  // Photo peeks: a link with class "peek" in about.md shows its photo as a taped print, on hover or
+  // keyboard focus. A click (or tap) pins it; a second click, Esc or a click elsewhere puts it away.
+  // Without the script, the link simply opens the photo.
+  const peekCard = document.querySelector<HTMLElement>('.peek-card')!;
+  const cardImg = peekCard.querySelector('img')!, cardCap = peekCard.querySelector('figcaption')!;
+  // A link to an .mp4 plays as a muted loop, from its data-poster still. With reduced motion it waits
+  // on the still, with controls, for the reader to press play.
+  const cardVideo = peekCard.querySelector('video')!;
+  const peekCalm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let pinned: HTMLAnchorElement | null = null;
+  const place = (a: HTMLAnchorElement) => {
+    const lines = a.getClientRects(), r = lines[0], last = lines[lines.length - 1]; // the link can wrap
+    const w = peekCard.offsetWidth, h = peekCard.offsetHeight;
+    const x = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2));
+    // Above the link if it fits, else below it, else as close as the window allows.
+    const above = r.top - h - 16, below = last.bottom + 16;
+    const y = above >= 12 ? above : below + h <= innerHeight - 12 ? below : Math.max(12, innerHeight - h - 12);
+    peekCard.style.left = `${x}px`; peekCard.style.top = `${y}px`;
+  };
+  const show = (a: HTMLAnchorElement) => {
+    const isVideo = /\.mp4$/.test(a.pathname);
+    cardImg.hidden = isVideo; cardVideo.hidden = !isVideo;
+    if (isVideo) {
+      cardVideo.poster = a.dataset.poster ?? '';
+      cardVideo.setAttribute('aria-label', a.dataset.caption ?? '');
+      cardVideo.controls = peekCalm;
+      if (cardVideo.getAttribute('src') !== a.pathname) cardVideo.src = a.pathname;
+      if (!peekCalm) cardVideo.play().catch(() => {}); // a blocked autoplay just leaves the still
+    } else {
+      cardImg.src = a.href; cardImg.alt = a.dataset.caption ?? '';
+    }
+    cardCap.textContent = a.dataset.caption ?? '';
+    // The print takes the photo's shape; a tall photo gets a narrower print.
+    const [rw, rh] = (a.dataset.ratio ?? '3 / 2').split('/').map(Number);
+    peekCard.style.setProperty('--ratio', `${rw} / ${rh}`);
+    peekCard.style.setProperty('--rn', String(rw / rh)); // caps the width so the print fits the window's height
+    peekCard.classList.toggle('tall', rh > rw);
+    peekCard.hidden = false; place(a);
+    requestAnimationFrame(() => peekCard.classList.add('on')); // a frame after showing, so it fades in
+  };
+  const hide = () => {
+    peekCard.classList.remove('on'); peekCard.hidden = true; pinned = null;
+    if (!cardVideo.hidden) { cardVideo.pause(); cardVideo.removeAttribute('src'); cardVideo.load(); } // stop and unload
+  };
+  document.querySelectorAll<HTMLAnchorElement>('a.peek').forEach((a) => {
+    a.addEventListener('mouseenter', () => { if (!pinned) show(a); });
+    a.addEventListener('mouseleave', () => { if (!pinned) hide(); });
+    a.addEventListener('focus', () => show(a));
+    a.addEventListener('blur', () => { if (pinned !== a) hide(); });
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (pinned === a) return hide();
+      show(a); pinned = a;
+    });
+  });
+  document.addEventListener('click', (e) => { if (pinned && !(e.target as Element).closest('a.peek, .peek-card')) hide(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !peekCard.hidden) hide(); });
+  addEventListener('scroll', () => { if (pinned) place(pinned); else if (!peekCard.hidden) hide(); }, { passive: true });
+
   // Recognition case files: a print opens its file; the close button, Esc or a click outside closes it.
   document.querySelectorAll<HTMLButtonElement>('[data-file]').forEach((btn) => {
     const file = document.getElementById(btn.dataset.file!) as HTMLDialogElement;
@@ -219,6 +282,31 @@ let fileCount = 0;
 
   .prose { margin-top: 40px; font-size: 18px; }
   .prose :global(h2) { font-size: 24px; margin-top: 40px; }
+  /* A line that shows a photo: a dotted red underline marks it. */
+  .prose :global(a.peek), h3 a.peek { text-decoration: underline dotted var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+  .prose :global(a.peek:hover), .prose :global(a.peek:focus-visible), h3 a.peek:is(:hover, :focus-visible) { color: var(--accent); }
+  /* The photo, as a print taped to the page with clear tape, like the portrait. */
+  .peek-card {
+    position: fixed; z-index: 60; width: min(320px, calc(100vw - 24px)); margin: 0; padding: 8px 8px 10px;
+    background: #f4efe2; pointer-events: none; opacity: 0; transform: rotate(-2deg) translateY(6px) scale(0.97);
+    transition: opacity 0.2s, transform 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 16px 30px -12px rgb(0 0 0 / 0.55);
+  }
+  .peek-card.on { opacity: 1; transform: rotate(-2deg); }
+  .peek-card::before {
+    content: ''; position: absolute; z-index: 1; top: -10px; left: 50%; width: 70px; height: 22px;
+    transform: translateX(-50%) rotate(3deg);
+    background: linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0) 60%), rgb(205 194 160 / 0.62);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+    clip-path: polygon(0 6%, 4% 0, 7% 8%, 11% 2%, 89% 0, 93% 7%, 97% 1%, 100% 8%, 100% 94%, 96% 100%, 92% 93%, 88% 100%, 12% 98%, 8% 92%, 4% 100%, 0 93%);
+  }
+  .peek-card { width: min(320px, calc(100vw - 24px), calc((100dvh - 80px) * var(--rn, 1.5))); }
+  .peek-card.tall { width: min(200px, calc(100vw - 24px), calc((100dvh - 80px) * var(--rn, 1.5))); }
+  .peek-card :is(img, video) { display: block; width: 100%; aspect-ratio: var(--ratio, 3 / 2); object-fit: cover; filter: sepia(0.1); }
+  .peek-card [hidden] { display: none; }
+  .peek-card video[controls] { pointer-events: auto; } /* reduced motion: the play button must be reachable */
+  .peek-card figcaption { margin-top: 7px; text-align: center; font: italic 13px var(--serif); color: #4a4234; }
+  @media (prefers-reduced-motion: reduce) { .peek-card { transition: none; } }
   /* Kitchen's logo and wordmark (written as a span in about.md), from their image: two masks,
      so the ink follows the theme and the dot on the i takes the site's red. */
   /* Sized so the wordmark's capital K (37 of 70 px) matches the text's capitals; the 16 px under its
