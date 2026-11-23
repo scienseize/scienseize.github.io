@@ -568,7 +568,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .book[aria-pressed='true'] { flex-shrink: 0; }
   /* On phones the open book is smaller and the spine labels finer, so all the spines fit beside it. */
   @media (max-width: 480px) {
-    .book[aria-pressed='true'], .book[aria-pressed='true']:is([data-kind='manga'], [data-kind='manhwa']) { width: 108px; }
+    .book[aria-pressed='true'], .book[aria-pressed='true']:is([data-kind='manga'], [data-kind='manhwa']) { width: 104px; }
+    .book { min-width: 13px; }
     .shelf { gap: 2px; }
     .spine .t { font-size: 8px; padding: 5px 1px; }
     .spine .a { font-size: 7px; }
