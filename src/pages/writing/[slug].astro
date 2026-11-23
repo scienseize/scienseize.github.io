@@ -16,7 +16,10 @@ const day = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 
 const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
 ---
 <Base title={post.data.title} description={post.data.description}>
+  <div class="casefile">
+  <span class="file-tab" aria-hidden="true">Case file · Correspondence</span>
   <article class="telegram">
+    <span class="received" aria-hidden="true">Received</span>
     <a class="pencil" href="/writing/">Writing</a>
     <header class="form">
       <div class="box">
@@ -45,27 +48,68 @@ const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
     <p class="tape signoff"><span>{site.name.toUpperCase()}=</span></p>
     <p class="fineprint foot">Replies by wire, or by mail to <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
   </article>
+  </div>
 </Base>
 
 <style>
-  /* A post arrives as an old telegram, worn from handling: a buff form printed in black, the date line
+  /* The telegram is filed as evidence in a manila case file, like the Library's on the home page. The
+     folder follows the theme (dark manila in dark mode), so it steps the page down to the paper. */
+  .casefile {
+    --manila: #eadfc4;
+    position: relative; margin-top: 60px; padding: 28px clamp(12px, 3.5vw, 26px) 26px; border-radius: 0 6px 6px 6px;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.15 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+      var(--manila);
+    color: #3b352a;
+    box-shadow: 0 1px 0 rgb(0 0 0 / 0.06), 0 12px 26px -18px rgb(0 0 0 / 0.35);
+  }
+  :global(:root[data-theme='dark']) .casefile { --manila: #2e2920; color: #ddd5c2; }
+  /* The folder tab, typed. */
+  .file-tab {
+    position: absolute; left: 0; bottom: 100%; padding: 5px 16px 3px; border-radius: 6px 6px 0 0;
+    background: var(--manila); font: 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  /* Edge to edge on phones. The corner tape would then reach past the screen, so the folder clips it
+     sideways (only sideways, so the tab above the folder still shows). */
+  @media (max-width: 480px) { .casefile { margin-inline: -16px; border-radius: 0 6px 0 0; overflow-x: clip; } }
+
+  /* A post arrives as an old telegram, worn from handling: a form printed in black, the date line
      and title typed in violet on pasted strips of tape, and the message itself written by hand in
-     Caveat. The paper has grain, two fold creases, a coffee ring on the corner and darkened edges. It keeps its colors
-     in both themes; the theme's colors are reset for it, so the global link and Kitchen styles follow. */
+     Caveat. The paper is the site's cream, with grain, two fold creases, a coffee ring on the corner and
+     darkened edges. It is taped into the folder at a slight tilt, and dims a little in dark mode (the
+     ink with it, so the contrast holds). The theme's colors are reset for it, so the global link and
+     Kitchen styles follow. */
   .telegram {
     --ink: #2b2116; --muted: #6b5a40; --line: rgb(43 33 22 / 0.3); --accent: #9e2b25;
     --tape-ink: #4a3d86; --pen-ink: #1f2a44; --hand: Caveat, 'Segoe Print', cursive;
-    position: relative; margin-top: 32px; padding: clamp(20px, 4.5vw, 34px) clamp(16px, 4.5vw, 34px) 26px;
-    border-radius: 3px; color: var(--ink);
+    position: relative; padding: clamp(20px, 4.5vw, 34px) clamp(16px, 4.5vw, 34px) 26px;
+    border-radius: 2px; color: var(--ink); transform: rotate(-0.5deg);
     background:
-      radial-gradient(circle at calc(100% - 64px) 64px, transparent 50px, rgb(120 75 25 / 0.2) 52px, rgb(120 75 25 / 0.07) 58px, transparent 63px),
-      linear-gradient(transparent calc(36% - 1px), rgb(255 250 235 / 0.55) calc(36% - 1px), rgb(90 60 20 / 0.14) 36%, transparent calc(36% + 2px)),
-      linear-gradient(transparent calc(70% - 1px), rgb(255 250 235 / 0.55) calc(70% - 1px), rgb(90 60 20 / 0.14) 70%, transparent calc(70% + 2px)),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
-      #e9d5a8;
-    box-shadow: inset 0 0 90px rgb(110 70 20 / 0.32), 0 14px 30px -18px rgb(0 0 0 / 0.55);
+      radial-gradient(circle at calc(100% - 64px) 64px, transparent 50px, rgb(120 75 25 / 0.16) 52px, rgb(120 75 25 / 0.06) 58px, transparent 63px),
+      linear-gradient(transparent calc(36% - 1px), rgb(255 250 235 / 0.55) calc(36% - 1px), rgb(90 60 20 / 0.12) 36%, transparent calc(36% + 2px)),
+      linear-gradient(transparent calc(70% - 1px), rgb(255 250 235 / 0.55) calc(70% - 1px), rgb(90 60 20 / 0.12) 70%, transparent calc(70% + 2px)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E"),
+      #f2ead6;
+    box-shadow: inset 0 0 70px rgb(110 75 30 / 0.2), 0 1px 2px rgb(0 0 0 / 0.18), 0 16px 30px -16px rgb(0 0 0 / 0.55);
   }
-  @media (max-width: 480px) { .telegram { margin-inline: -16px; border-radius: 0; } } /* edge to edge on phones */
+  :global(:root[data-theme='dark']) .telegram { filter: brightness(0.9); }
+  /* Clear tape at the two top corners, as on the About portrait. */
+  .telegram::before, .telegram::after {
+    content: ''; position: absolute; z-index: 2; top: -10px; width: 74px; height: 24px; pointer-events: none;
+    background: linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0) 60%), rgb(205 194 160 / 0.62);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.18), inset 0 0 0 1px rgb(255 255 255 / 0.25);
+    clip-path: polygon(0 6%, 4% 0, 7% 8%, 11% 2%, 89% 0, 93% 7%, 97% 1%, 100% 8%, 100% 94%, 96% 100%, 92% 93%, 88% 100%, 12% 98%, 8% 92%, 4% 100%, 0 93%);
+  }
+  .telegram::before { left: -14px; transform: rotate(-38deg); }
+  .telegram::after { right: -14px; transform: rotate(36deg); }
+  /* A worn oxblood stamp by the sign-off, as the receiving office marked it. */
+  .received {
+    position: absolute; z-index: 1; right: clamp(16px, 5vw, 36px); bottom: 74px; padding: 3px 10px 2px;
+    border: 2px solid currentColor; border-radius: 2px; transform: rotate(-8deg); opacity: 0.85;
+    font: 15px var(--deco); letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent);
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 1.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 1.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  }
   /* The flashlight's dimming outside the beam would darken the words being read, so posts drop it. */
   :global(:root[data-theme]:has(.telegram)) { --beam-dark: transparent; }
 
@@ -82,7 +126,7 @@ const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
   .box p { margin: 0; }
   .box .box-head { margin-bottom: 4px; text-align: center; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
   .symbols p + p { border-top: 1px solid var(--line); padding-top: 2px; margin-top: 2px; }
-  .wordmark { margin: 0; text-align: center; font: 700 clamp(34px, 8vw, 52px)/0.92 var(--serif); letter-spacing: 0.04em; text-transform: uppercase; }
+  .wordmark { margin: 0; text-align: center; font: 700 clamp(32px, 7vw, 44px)/0.92 var(--serif); letter-spacing: 0.04em; text-transform: uppercase; }
   .wordmark span { display: block; }
   .operator { margin: 6px 0 0; text-align: center; font: 600 9px var(--serif); letter-spacing: 0.14em; text-transform: uppercase; }
   @media (max-width: 560px) { .form { grid-template-columns: 1fr; } .box { display: none; } }
