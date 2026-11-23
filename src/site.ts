@@ -25,20 +25,21 @@ export const site = {
     'building agents',
   ],
   // The home page heading: "<pre>Bill<post>" in another language every few seconds. The first is shown on load.
-  // East and Southeast Asian languages, plus Spanish, French and Russian.
+  // East and Southeast Asian languages, plus Spanish, French and Russian. Each is short and casual, so it
+  // fits on one line on a 320 px phone; keep new ones as short.
   hello: [
     { lang: 'en', pre: "Hi, I'm ", post: '.' },
-    { lang: 'fil', pre: 'Kumusta, ako si ', post: '.' },
-    { lang: 'ja', pre: 'こんにちは、', post: 'です。' },
+    { lang: 'fil', pre: 'Uy, ako si ', post: '.' },
+    { lang: 'ja', pre: 'やあ、', post: 'だよ。' },
     { lang: 'ko', pre: '안녕, 난 ', post: '이야.' },
     { lang: 'zh-CN', pre: '你好，我是', post: '。' },
     { lang: 'zh-HK', pre: '你好，我係', post: '。' }, // Cantonese
     { lang: 'id', pre: 'Halo, saya ', post: '.' },
     { lang: 'ms', pre: 'Hai, saya ', post: '.' },
-    { lang: 'th', pre: 'สวัสดีครับ ผมชื่อ ', post: '' },
-    { lang: 'vi', pre: 'Xin chào, tôi là ', post: '.' },
+    { lang: 'th', pre: 'หวัดดี ผมชื่อ ', post: '' },
+    { lang: 'vi', pre: 'Chào, tôi là ', post: '.' },
     { lang: 'es', pre: 'Hola, soy ', post: '.' },
-    { lang: 'fr', pre: 'Salut, je suis ', post: '.' },
+    { lang: 'fr', pre: "Salut, c'est ", post: '.' },
     { lang: 'ru', pre: 'Привет, я ', post: '.' },
   ],
   email: 'billalcantara.dev@gmail.com',
