@@ -30,7 +30,7 @@ export const site = {
     { lang: 'en', pre: "Hi, I'm ", post: '.' },
     { lang: 'fil', pre: 'Kumusta, ako si ', post: '.' },
     { lang: 'ja', pre: 'こんにちは、', post: 'です。' },
-    { lang: 'ko', pre: '안녕하세요, 저는 ', post: '입니다.' },
+    { lang: 'ko', pre: '안녕, 난 ', post: '이야.' },
     { lang: 'zh-CN', pre: '你好，我是', post: '。' },
     { lang: 'zh-HK', pre: '你好，我係', post: '。' }, // Cantonese
     { lang: 'id', pre: 'Halo, saya ', post: '.' },

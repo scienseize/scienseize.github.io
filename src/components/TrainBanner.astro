@@ -1,5 +1,5 @@
 ---
-// A steam train crossing the banner, drawn live as newspaper halftone dots.
+// A steam train running through the banner (it stays put; the country rolls past), drawn live as newspaper halftone dots.
 // A nod to Agatha Christie: Murder on the Orient Express, and the A.B.C. railway guide in The A.B.C. Murders.
 // A click blows the whistle. The mouse parts the smoke. The scene follows the time of day where I am:
 //   Dawn (5–7):   the Milk Train. The sun rises on the left, the last stars fade, mist lies on the hills.
@@ -18,7 +18,7 @@ import { site } from '../site';
     <canvas aria-hidden="true"></canvas>
   </button>
   <figcaption class="hero-caption" aria-hidden="true">
-    <span class="hero-label">The B<i>.</i>C<i>.</i>A<i>.</i> <span class="by-dawn">Milk Train</span><span class="by-day">Express</span><span class="by-dusk">Evening Express</span><span class="by-night">Night Mail</span></span>
+    <span class="hero-label">The B<i>.</i>C<i>.</i>A<i>.</i> <span class="by-dawn">Milk Train</span><span class="by-day">Express</span><span class="by-dusk">Evening Express</span><span class="by-night">Night Mail</span> <i>·</i> <time class="hero-time"></time></span>
     <span class="hero-hint">Pull the whistle</span>
   </figcaption>
 </figure>
@@ -98,7 +98,9 @@ import { site } from '../site';
   circ(-17, -9, 8, 0.97, true); circ(-134, -10, 9, 0.97, true);
   const TRAIN_LEN = 460;
 
-  let tx = 0; // world x of the front buffer
+  let tx = 0; // screen x of the front buffer; the train stays here
+  let ox = 0; // how far the ground has rolled past, in CSS pixels
+  const hillsAt = (x: number) => H * 0.6 + (noise((x + ox * 0.35) * 0.012, 4.2) - 0.5) * H * 0.22; // far hills move slower
   type Puff = { x: number; y: number; age: number; life: number; r0: number };
   let puffs: Puff[] = [];
   let emit = 0, t = 0;
@@ -141,6 +143,7 @@ import { site } from '../site';
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     s = H / 235; rail = H * 0.82;
+    tx = Math.min(W - 12 * s, W * 0.5 + TRAIN_LEN * s * 0.5 + 30 * s); // right of center, smoke trails left
   };
 
   const train = (x: number, y: number) => {
@@ -157,7 +160,7 @@ import { site } from '../site';
           if (!p.wheel) d = p.d;
           else {
             // A dark rim with turning spokes.
-            const spoke = Math.abs(Math.sin(Math.atan2(dy, dx) * 3 + tx / (r * s)));
+            const spoke = Math.abs(Math.sin(Math.atan2(dy, dx) * 3 + ox / (r * s)));
             d = dist > r - 3 || spoke < 0.25 || dist < 2.5 ? p.d : 0.35;
           }
         }
@@ -168,7 +171,8 @@ import { site } from '../site';
 
   // Telegraph poles along the line (day only), every 170 train units, each with two crossbars and two
   // wires that sag between poles. Lines a few pixels thick come out as dotted lines on the screen.
-  const poles = (x: number, y: number) => {
+  const poles = (sx: number, y: number) => {
+    const x = sx + ox;
     const gap = 170 * s, top = rail - 112 * s;
     if (y < top - 2 || y > rail - 3 * s) return 0;
     const i = Math.floor((x - gap * 0.3) / gap), px = gap * 0.3 + i * gap, u = (x - px) / gap;
@@ -183,7 +187,7 @@ import { site } from '../site';
   };
 
   const scene = (x: number, y: number) => {
-    const hills = H * 0.6 + (noise(x * 0.012, 4.2) - 0.5) * H * 0.22;
+    const hills = hillsAt(x), gx = x + ox, hx = x + ox * 0.35; // ground and hill x, rolling past
     if (night) {
       if (y < hills) {
         if (star) { // a shooting star: a clear streak, brightest at its head, fading along its tail
@@ -198,10 +202,10 @@ import { site } from '../site';
         const u = y / hills;
         return 0.9 - 0.62 * u * u; // inked sky, lighter toward the hills so the train still shows
       }
-      if (y < rail - 6 * s) return 0.2 + 0.08 * noise(x * 0.05, y * 0.05); // moonlit hills
+      if (y < rail - 6 * s) return 0.2 + 0.08 * noise(hx * 0.05, y * 0.05); // moonlit hills
       if (Math.abs(y - rail) < 1.6 * s) return 0.1; // moonlight on the rail
-      if (y > rail && y < rail + 6 * s && ((x + 1000) % (16 * s)) < 6 * s) return 0.85;
-      return 0.5 + 0.1 * noise(x * 0.08, y * 0.08);
+      if (y > rail && y < rail + 6 * s && (gx % (16 * s)) < 6 * s) return 0.85;
+      return 0.5 + 0.1 * noise(gx * 0.08, y * 0.08);
     }
     const pole = poles(x, y); // telegraph poles stand in front of the hills and sky, behind the train
     if (pole > 0) return pole;
@@ -216,13 +220,13 @@ import { site } from '../site';
       const band = y / H;
       if (band > 0.14 && band < 0.46) {
         const fade = Math.min(1, (band - 0.14) / 0.08, (0.46 - band) / 0.1);
-        const c = noise((x + t * 7) * 0.0065, y * 0.03 + 7.3) * fade;
+        const c = noise((x + t * 7 + ox * 0.08) * 0.0065, y * 0.03 + 7.3) * fade;
         if (c > 0.6) return Math.min(0.24, (c - 0.6) * 1.8 + 0.06);
       }
       if (dawn || dusk) {
         // A low sun on the horizon: rising on the left at dawn, half set on the right at dusk. The hills
         // hide its lower part, since it is drawn only above them.
-        const sx = W * (dusk ? 0.78 : 0.18), horizon = H * 0.6 + (noise(sx * 0.012, 4.2) - 0.5) * H * 0.22;
+        const sx = W * (dusk ? 0.78 : 0.18), horizon = hillsAt(sx);
         const sy = horizon - H * (dusk ? 0.02 : 0.07), sr = H * 0.14, sd = Math.hypot(x - sx, y - sy);
         if (sd < sr) return sd > sr - 4 ? 0.75 : 0.22;
         if (sd > sr * 1.25 && sd < sr * 2.3 && Math.abs(Math.sin(Math.atan2(y - sy, x - sx) * 7)) > 0.9) return 0.45;
@@ -238,13 +242,13 @@ import { site } from '../site';
       return Math.max(0, (y / H - 0.25)) * 0.12; // blank paper at the top, a light haze near the hills
     }
     if (y < rail - 6 * s) {
-      if (dawn) return 0.07 + 0.07 * noise((x - t * 6) * 0.025, y * 0.06); // morning mist drifting over the hills
-      if (dusk) return 0.34 + 0.1 * noise(x * 0.05, y * 0.05); // hills going dark against the sky
-      return 0.2 + 0.08 * noise(x * 0.05, y * 0.05);
+      if (dawn) return 0.07 + 0.07 * noise((hx - t * 6) * 0.025, y * 0.06); // morning mist drifting over the hills
+      if (dusk) return 0.34 + 0.1 * noise(hx * 0.05, y * 0.05); // hills going dark against the sky
+      return 0.2 + 0.08 * noise(hx * 0.05, y * 0.05);
     }
     if (Math.abs(y - rail) < 1.6 * s) return 0.95; // the rail
-    if (y > rail && y < rail + 6 * s && ((x + 1000) % (16 * s)) < 6 * s) return 0.75; // sleepers
-    return 0.42 + 0.12 * noise(x * 0.08, y * 0.08); // embankment
+    if (y > rail && y < rail + 6 * s && (gx % (16 * s)) < 6 * s) return 0.75; // sleepers
+    return 0.42 + 0.12 * noise(gx * 0.08, y * 0.08); // embankment
   };
 
   const smoke = (x: number, y: number) => {
@@ -266,14 +270,11 @@ import { site } from '../site';
   };
 
   // The whistle: a big burst of steam from the chimney, and a surge of speed that eases off.
-  // If the chimney is off-screen, the train races round and whistles as soon as the chimney is back in view.
-  let boost = 0, pendingWhistle = false;
+  let boost = 0;
   const BOOST = 1.5; // seconds
-  const chimneyOnScreen = () => tx - 25 * s > 10 && tx - 25 * s < W - 10;
   const whistle = () => {
     boost = BOOST;
-    if (!night) scatter(); // the birds hear it at once, wherever the train is
-    if (!chimneyOnScreen()) return void (pendingWhistle = true);
+    if (!night) scatter();
     if (night) for (let i = 0; i < 28; i++) spark(1.8); // a shower of sparks with the steam
     const cx = tx - 25 * s, cy = rail - 78 * s;
     for (let i = 0; i < 12; i++) {
@@ -283,18 +284,16 @@ import { site } from '../site';
 
   const step = (dt: number) => {
     t += dt;
-    if (pendingWhistle) boost = BOOST; // keep racing until the whistle can blow
     const surge = 1 + (1.2 * Math.max(0, boost)) / BOOST;
     boost -= dt;
-    tx += (W / 16) * dt * surge; // about 16 s to cross
-    if (tx > W + TRAIN_LEN * s + (pendingWhistle ? 0 : 120)) tx = -20;
-    if (pendingWhistle && chimneyOnScreen()) { pendingWhistle = false; whistle(); }
+    const v = 50 * s * surge; // ground speed, in CSS pixels a second
+    ox += v * dt;
     emit -= dt;
-    if (emit <= 0 && tx > -10 && tx < W + 30) {
+    if (emit <= 0) {
       emit = 0.11;
       puffs.push({ x: tx - 25 * s + (Math.random() - 0.5) * 4 * s, y: rail - 78 * s, age: 0, life: 4.5 + Math.random(), r0: 6 * s });
     }
-    for (const p of puffs) { p.age += dt; p.y -= (20 - p.age * 3) * s * dt; p.x -= 9 * s * dt; }
+    for (const p of puffs) { p.age += dt; p.y -= (20 - p.age * 3) * s * dt; p.x -= (v + 9 * s) * dt; } // the smoke hangs in the air as the train pulls away
     if (mouse) { // the mouse pushes nearby puffs aside, like a hand waving through steam
       for (const p of puffs) {
         const dx = p.x - mouse.x, dy = p.y - mouse.y, d = Math.hypot(dx, dy) || 1;
@@ -306,8 +305,8 @@ import { site } from '../site';
     if (night) {
       birds = [];
       // A steady trickle of sparks while the chimney is in view, falling back as they cool.
-      if (chimneyOnScreen() && Math.random() < dt * 6) spark(1);
-      for (const k of sparks) { k.age += dt; k.vy += 60 * dt; k.x += k.vx * dt; k.y += k.vy * dt; }
+      if (Math.random() < dt * 6) spark(1);
+      for (const k of sparks) { k.age += dt; k.vy += 60 * dt; k.x += (k.vx - v) * dt; k.y += k.vy * dt; }
       sparks = sparks.filter((k) => k.age < k.life);
       // A shooting star every 7 to 16 seconds, gone in under a second. Not in the reduced-motion still.
       if (star) {
@@ -361,7 +360,15 @@ import { site } from '../site';
 
   resize();
   new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
-  setInterval(() => { const was = phase; setPhase(); if (was !== phase) draw(); }, 60_000);
+  // The live time where I am, railway style (24-hour), beside the train's name.
+  const clock = document.querySelector<HTMLTimeElement>('.hero-time')!;
+  const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: hero.dataset.tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const tick = () => {
+    clock.textContent = hhmm.format(new Date());
+    const was = phase; setPhase(); if (was !== phase) draw();
+  };
+  tick();
+  setInterval(tick, 1000);
 
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerType !== 'mouse') return;
@@ -372,20 +379,17 @@ import { site } from '../site';
   canvas.addEventListener('pointerleave', () => { mouse = null; if (calm) draw(); });
 
   if (calm) {
-    // A still frame: the train mid-banner with its smoke trail behind it.
-    tx = W * 0.55 - 6 * (W / 16);
+    // A still frame: the train with its smoke trail behind it.
     for (let i = 0; i < 180; i++) step(1 / 30);
     draw();
     // The whistle still works, as a new still frame with the burst of steam.
     hero.addEventListener('click', () => {
-      if (!chimneyOnScreen()) tx = W * 0.55; // no racing round in a still frame
       whistle();
       for (let i = 0; i < 20; i++) step(1 / 30);
       draw();
     });
   } else {
     hero.addEventListener('click', whistle);
-    tx = W * 0.35;
     for (let i = 0; i < 90; i++) step(1 / 30); // start with smoke already in the air
     let visible = true, last = 0, raf = 0;
     const loop = (now: number) => {
@@ -418,6 +422,10 @@ import { site } from '../site';
     font: 10px var(--deco); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
   }
   .hero-label i { font-style: normal; color: var(--accent); }
+  .hero-caption { flex-wrap: wrap; row-gap: 4px; } /* on a phone the hint drops under the name, whole */
+  .hero-label, .hero-hint { white-space: nowrap; }
+  .hero-hint { margin-left: auto; }
+  .hero-time { font-variant-numeric: tabular-nums; }
   /* The hint brightens while the banner is hovered or focused, so people know it does something. */
   .hero-hint { opacity: 0.7; transition: opacity 0.3s, color 0.3s; }
   .train:has(.hero:is(:hover, :focus-visible)) .hero-hint { opacity: 1; color: var(--accent); }
