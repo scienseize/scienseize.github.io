@@ -254,7 +254,7 @@ let fileCount = 0;
       setTimeout(() => {
         card.classList.remove('booking', 'rolling'); pen.innerHTML = '';
         card.dispatchEvent(new Event('booked')); // the opening paragraph types next (see below)
-      }, 3900);
+      }, 3150);
     }));
   }
 
@@ -304,7 +304,7 @@ let fileCount = 0;
     if (!intro) watch();
     else card.addEventListener('booked', () => {
       intro.classList.add('typed');
-      setTimeout(watch, intro.querySelectorAll('.w').length * 35); // 35 ms a word, as in the styles
+      setTimeout(watch, intro.querySelectorAll('.w').length * 26); // 26 ms a word, as in the styles
     }, { once: true });
   }
 </script>
@@ -345,48 +345,48 @@ let fileCount = 0;
   @media (max-width: 480px) { .card { grid-template-columns: 1fr; } .evidence { margin-inline: auto; } }
 
   /* Booking: the portrait comes out of a Polaroid camera. The blank print slides out of a slot at its top
-     edge (0 to 0.9 s), tilts as it is laid on the board, and the tape presses it down (1.5 s). The picture
-     comes up in black and white while it ejects, holds, and the color comes in once it is taped (1.6 s
-     to 2.6 s). Then the pins go in, the red strings run out to each fact, and the name is written in pen,
+     edge (0 to 0.7 s), tilts as it is laid on the board, and the tape presses it down (1.1 s). The picture
+     comes up in black and white while it ejects, holds, and the color comes in once it is taped (1.2 s
+     to 1.9 s). The whole reveal takes about 3 seconds. Then the pins go in, the red strings run out to each fact, and the name is written in pen,
      letter by letter, before the ink fills in. The inline script adds .booking, which holds every
      animation on its first frame; the module script draws the strings and the pen letters, then adds
      .rolling to play them. Reduced motion never gets .booking. */
   .booking:not(.rolling) :global(*), .booking:not(.rolling) .print::before { animation-play-state: paused !important; }
   /* The slot: the print moves down by the same share that its clip opens, so its visible top edge stays
      put. Linear, like a camera's motor. */
-  .booking .print { animation: eject 1200ms linear backwards; }
+  .booking .print { animation: eject 900ms linear backwards; }
   @keyframes eject {
     0% { transform: translateY(-100%) rotate(0deg); clip-path: inset(100% -40px -40px -40px); }
     75% { transform: translateY(0) rotate(0deg); clip-path: inset(0 -40px -40px -40px); animation-timing-function: ease-out; }
     100% { transform: translateY(0) rotate(-2.5deg); clip-path: inset(0 -40px -40px -40px); }
   }
-  .booking .print::before { animation: tape 280ms ease-in 1500ms backwards; }
+  .booking .print::before { animation: tape 240ms ease-in 1100ms backwards; }
   @keyframes tape { from { opacity: 0; transform: translateX(-50%) translateY(-12px) rotate(9deg) scale(1.15); } }
   /* Every keyframe lists the same filters in the same order, so the browser can blend between them. */
-  .booking .print img { animation: develop 2600ms ease-out backwards; }
+  .booking .print img { animation: develop 1900ms ease-out backwards; }
   @keyframes develop {
     0%, 15% { filter: grayscale(1) sepia(0) saturate(1) contrast(0.04) brightness(1.7); }
     50%, 62% { filter: grayscale(1) sepia(0) saturate(1) contrast(1.15) brightness(0.95); }
     100% { filter: grayscale(0) sepia(0.12) saturate(0.92) contrast(1) brightness(1); }
   }
-  .booking .strings :global(path) { stroke-dasharray: 1; animation: draw 400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(1950ms + var(--i) * 150ms) backwards; }
+  .booking .strings :global(path) { stroke-dasharray: 1; animation: draw 330ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(1450ms + var(--i) * 120ms) backwards; }
   @keyframes draw { from { stroke-dashoffset: 1; } }
-  .booking .strings :global(g) { transform-box: fill-box; transform-origin: center; animation: pin-in 240ms ease-in calc(2310ms + var(--i) * 150ms) backwards; }
-  .booking .strings :global(g.origin) { animation-delay: 1900ms; }
+  .booking .strings :global(g) { transform-box: fill-box; transform-origin: center; animation: pin-in 220ms ease-in calc(1750ms + var(--i) * 120ms) backwards; }
+  .booking .strings :global(g.origin) { animation-delay: 1400ms; }
   @keyframes pin-in { from { opacity: 0; transform: scale(2.2); } 70% { transform: scale(0.9); } }
-  .booking dl > * { animation: fact-in 300ms ease-out calc(2310ms + var(--i) * 150ms) backwards; }
+  .booking dl > * { animation: fact-in 260ms ease-out calc(1750ms + var(--i) * 120ms) backwards; }
   @keyframes fact-in { from { opacity: 0; transform: translateX(-6px); } }
-  /* The signature: each letter's outline is traced in pen (55 ms apart, from 2.4 s), then the name's
+  /* The signature: each letter's outline is traced in pen (45 ms apart, from 1.8 s), then the name's
      ink fades in as the pen lines fade out. */
   .pen { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; font-family: var(--deco); }
   .pen :global(text) {
     fill: none; stroke: currentColor; stroke-width: 0.8; stroke-linejoin: round; stroke-dasharray: var(--len);
-    animation: trace 320ms ease-in-out calc(2400ms + var(--k) * 55ms) backwards;
+    animation: trace 280ms ease-in-out calc(1800ms + var(--k) * 45ms) backwards;
   }
   @keyframes trace { from { stroke-dashoffset: var(--len); } }
-  .booking .pen { animation: fade 300ms 3500ms forwards; }
+  .booking .pen { animation: fade 300ms 2800ms forwards; }
   @keyframes fade { to { opacity: 0; } }
-  .booking .namesake { animation: ink 350ms ease 3450ms backwards; }
+  .booking .namesake { animation: ink 300ms ease 2750ms backwards; }
   @keyframes ink { from { opacity: 0; } }
 
   .prose { margin-top: 40px; font-size: 18px; }
@@ -416,9 +416,9 @@ let fileCount = 0;
   .peek-card video[controls] { pointer-events: auto; } /* reduced motion: the play button must be reachable */
   .peek-card figcaption { margin-top: 7px; text-align: center; font: italic 13px var(--serif); color: #4a4234; }
   @media (prefers-reduced-motion: reduce) { .peek-card { transition: none; } }
-  /* Typing on scroll (see the script): one word every 35 ms. */
+  /* Typing on scroll (see the script): one word every 26 ms. */
   .prose :global(.typing .w) { opacity: 0; }
-  .prose :global(.typed .w) { opacity: 1; transition: opacity 0.08s calc(var(--i) * 35ms); }
+  .prose :global(.typed .w) { opacity: 1; transition: opacity 0.08s calc(var(--i) * 26ms); }
 
   section { margin-top: 56px; }
   section > .label { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }
