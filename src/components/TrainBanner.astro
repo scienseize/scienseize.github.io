@@ -11,11 +11,17 @@
 //                 sparks from the chimney (a burst of them at the whistle), and now and then a shooting star.
 import { site } from '../site';
 ---
-<button type="button" class="hero" aria-label="Blow the train whistle" data-tz={site.timeZone}>
-  <canvas aria-hidden="true"></canvas>
-  <span class="hero-label" aria-hidden="true">The B<i>.</i>C<i>.</i>A<i>.</i> <span class="by-dawn">Milk Train</span><span class="by-day">Express</span><span class="by-dusk">Evening Express</span><span class="by-night">Night Mail</span></span>
-  <span class="hero-hint" aria-hidden="true">Pull the whistle</span>
-</button>
+<!-- The train's name and the hint sit in a caption under the banner, in the page's own colors, so they
+     read the same in every scene and theme. -->
+<figure class="train">
+  <button type="button" class="hero" aria-label="Blow the train whistle" data-tz={site.timeZone}>
+    <canvas aria-hidden="true"></canvas>
+  </button>
+  <figcaption class="hero-caption" aria-hidden="true">
+    <span class="hero-label">The B<i>.</i>C<i>.</i>A<i>.</i> <span class="by-dawn">Milk Train</span><span class="by-day">Express</span><span class="by-dusk">Evening Express</span><span class="by-night">Night Mail</span></span>
+    <span class="hero-hint">Pull the whistle</span>
+  </figcaption>
+</figure>
 
 <script>
   const hero = document.querySelector<HTMLButtonElement>('.hero')!;
@@ -398,26 +404,25 @@ import { site } from '../site';
 </script>
 
 <style>
+  .train { margin: 0 0 28px; }
   .hero {
-    position: relative; display: block; width: 100%; height: clamp(150px, 34vw, 210px); margin-bottom: 28px; padding: 0; border: 0;
+    position: relative; display: block; width: 100%; height: clamp(150px, 34vw, 210px); padding: 0; border: 0;
     border-radius: 2px; overflow: hidden; font: inherit; text-align: left;
     background: #efe8d4; box-shadow: 0 1px 0 var(--line), 0 8px 20px -14px rgb(0 0 0 / 0.5);
   }
   .hero:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   canvas { display: block; width: 100%; height: 100%; }
-  .hero-label, .hero-hint {
-    position: absolute; top: 10px; font: 10px var(--deco); letter-spacing: 0.2em; text-transform: uppercase; color: #2a2620;
+  /* The caption: the train's name on the left, the hint on the right, like a print's caption. */
+  .hero-caption {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 8px;
+    font: 10px var(--deco); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
   }
-  .hero-label { left: 12px; opacity: 0.75; }
-  .hero-label i { font-style: normal; color: #9e2b25; }
-  /* A quiet hint on hover or focus, so people know the banner does something. */
-  .hero-hint { right: 12px; opacity: 0; transition: opacity 0.3s; }
-  .hero:is(:hover, :focus-visible) .hero-hint { opacity: 0.6; }
-  /* The train's name for the time of day: the Milk Train, the Express, the Evening Express, the Night Mail. */
-  .by-dawn, .by-dusk, .by-night, :is(.dawn, .dusk, .night) .by-day { display: none; }
-  .dawn .by-dawn, .dusk .by-dusk, .night .by-night { display: inline; }
-  /* At dusk and at night the top of the sky is inked, so the lettering turns to paper. */
-  :is(.dusk, .night) :is(.hero-label, .hero-hint) { color: #efe8d4; }
-  :is(.dusk, .night) .hero-label i { color: #d65a4f; }
-  .night .hero-hint { right: auto; left: 12px; top: 26px; } /* clear of the moon */
+  .hero-label i { font-style: normal; color: var(--accent); }
+  /* The hint brightens while the banner is hovered or focused, so people know it does something. */
+  .hero-hint { opacity: 0.7; transition: opacity 0.3s, color 0.3s; }
+  .train:has(.hero:is(:hover, :focus-visible)) .hero-hint { opacity: 1; color: var(--accent); }
+  /* The train's name for the time of day: the Milk Train, the Express, the Evening Express, the Night Mail.
+     The script puts the phase class on the banner, so the caption reads it from there. */
+  .by-dawn, .by-dusk, .by-night, .train:has(.hero:is(.dawn, .dusk, .night)) .by-day { display: none; }
+  .train:has(.hero.dawn) .by-dawn, .train:has(.hero.dusk) .by-dusk, .train:has(.hero.night) .by-night { display: inline; }
 </style>
