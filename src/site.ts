@@ -18,6 +18,23 @@ export const site = {
     'refactoring code',
     'building agents',
   ],
+  // The home page heading: "<pre>Bill<post>" in another language every few seconds. The first is shown on load.
+  // East and Southeast Asian languages, plus Spanish, French and Russian.
+  hello: [
+    { lang: 'en', pre: "Hi, I'm ", post: '.' },
+    { lang: 'fil', pre: 'Kumusta, ako si ', post: '.' },
+    { lang: 'ja', pre: 'こんにちは、', post: 'です。' },
+    { lang: 'ko', pre: '안녕하세요, 저는 ', post: '입니다.' },
+    { lang: 'zh-CN', pre: '你好，我是', post: '。' },
+    { lang: 'zh-HK', pre: '你好，我係', post: '。' }, // Cantonese
+    { lang: 'id', pre: 'Halo, saya ', post: '.' },
+    { lang: 'ms', pre: 'Hai, saya ', post: '.' },
+    { lang: 'th', pre: 'สวัสดีครับ ผมชื่อ ', post: '' },
+    { lang: 'vi', pre: 'Xin chào, tôi là ', post: '.' },
+    { lang: 'es', pre: 'Hola, soy ', post: '.' },
+    { lang: 'fr', pre: 'Salut, je suis ', post: '.' },
+    { lang: 'ru', pre: 'Привет, я ', post: '.' },
+  ],
   email: 'billalcantara.dev@gmail.com',
   // The footer clock shows the time here. timeZone is an IANA name.
   place: 'Manila, PH',

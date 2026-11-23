@@ -30,7 +30,10 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 ---
 <section class="intro">
   <TrainBanner />
-  <h1>Hi, I'm Bill.</h1>
+  <h1>
+    <span class="sr">Hi, I'm Bill.</span>
+    <span aria-hidden="true" id="hello" data-hellos={JSON.stringify(site.hello)}><span class="pre">{site.hello[0].pre}</span>Bill<span class="post">{site.hello[0].post}</span></span>
+  </h1>
   <p class="tagline">
     <em>currently</em> <span id="doing" class="doing" aria-hidden="true" data-words={JSON.stringify(site.doing)}>{site.doing[0]}</span><span class="sr">{site.doing[0]}</span>.
   </p>
@@ -186,14 +189,20 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 ))}
 
 <script>
-  // Tagline: every few seconds, pick another random phrase and scramble into it.
+  // Tagline: every few seconds, pick another random phrase and scramble into it, in a new font and color
+  // (the CSS sets each [data-look]). The heading greets in another language at the same time; Bill stays.
   const el = document.getElementById('doing')!;
   const words: string[] = JSON.parse(el.dataset.words!);
+  const hello = document.getElementById('hello')!;
+  const hellos: { lang: string; pre: string; post: string }[] = JSON.parse(hello.dataset.hellos!);
+  const [pre, post] = hello.querySelectorAll<HTMLElement>('.pre, .post');
   const glyphs = 'abcdefghijklmnopqrstuvwxyz_<>/{}#*';
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let current = words[0];
+  const looks = 6;
+  const other = <T,>(list: T[], now: T) => { let n = now; while (n === now) n = list[Math.floor(Math.random() * list.length)]; return n; };
+  let current = words[0], greeting = hellos[0], look = 0;
 
-  const scramble = (to: string) => {
+  const scramble = (el: HTMLElement, to: string) => {
     if (calm) return void (el.textContent = to);
     const start = performance.now();
     const frame = (now: number) => {
@@ -209,10 +218,14 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   setInterval(() => {
     if (document.hidden) return;
-    let next = current;
-    while (next === current) next = words[Math.floor(Math.random() * words.length)];
-    current = next;
-    scramble(next);
+    current = other(words, current);
+    look = other([...Array(looks).keys()], look);
+    el.dataset.look = String(look);
+    scramble(el, current);
+    greeting = other(hellos, greeting);
+    hello.lang = greeting.lang;
+    scramble(pre, greeting.pre);
+    scramble(post, greeting.post);
   }, 3500);
 
   // Library: clicking a spine opens that book and closes the one that was open.
@@ -539,7 +552,14 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .book[aria-pressed='true'] .cover { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { .book, .spine, .cover { transition: none; } }
 
-  .doing { font: 0.85em var(--mono); color: var(--accent); }
+  /* Each tagline phrase gets one of these looks at random (see the script). Look 0 is the first one. */
+  .doing { font: 0.85em var(--mono); color: var(--accent); --ink-1: #1e4f7a; --ink-2: #3d6b2e; --ink-3: #8a6414; --ink-4: #6d2f6d; --ink-5: #1f6b68; }
+  :root[data-theme='dark'] .doing { --ink-1: #7fb0dc; --ink-2: #8fc47a; --ink-3: #d9b25a; --ink-4: #c98bc9; --ink-5: #6cc2bd; }
+  .doing[data-look='1'] { font: 0.9em var(--deco); color: var(--ink-1); }
+  .doing[data-look='2'] { font: italic 1em var(--serif); color: var(--ink-2); }
+  .doing[data-look='3'] { font: 0.9em 'Special Elite', var(--mono); color: var(--ink-3); }
+  .doing[data-look='4'] { font: 500 1.2em/1 Caveat, cursive; color: var(--ink-4); }
+  .doing[data-look='5'] { font: 500 0.75em var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-5); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
   .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px 16px; }
