@@ -1,5 +1,5 @@
 ---
-// A shareable link for each project: the home page, with that project's sheet open.
+// A shareable link for each project: the Projects page, with that project's sheet open.
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Home from '../../components/Home.astro';
@@ -9,4 +9,4 @@ export async function getStaticPaths() {
 }
 const { p } = Astro.props;
 ---
-<Base title={p.data.title} description={p.data.blurb}><Home /></Base>
+<Base title={p.data.title} description={p.data.blurb}><Home section="projects" /></Base>

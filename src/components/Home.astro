@@ -4,14 +4,26 @@ import PostList from './PostList.astro';
 import TrainBanner from './TrainBanner.astro';
 import { site, library, photos } from '../site';
 
+// The home page shows every section, each capped at 6 items with a "View all" link; the shelf is the
+// exception and holds every book. A section page (/projects/, /library/, /photos/) passes `section`
+// and shows only that section, in full. The Library page lists the books with their plots instead.
+interface Props { section?: 'projects' | 'library' | 'photos' }
+const { section } = Astro.props;
+const show = (s: string) => !section || section === s;
+const cap = <T,>(list: T[]) => (section ? list : list.slice(0, 6));
+const base = section ? `/${section}/` : '/'; // where a closed project sheet returns to
+const pageTitle = { projects: 'Projects', library: 'Library', photos: 'Photos' };
+
 const posts = (await getCollection('writing', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, 5);
+  .slice(0, 6);
 const projects = await Promise.all(
   (await getCollection('projects'))
     .sort((a, b) => a.data.order - b.data.order)
     .map(async (p) => ({ id: p.id, ...p.data, Content: (await render(p)).Content })),
 );
+const kindName = { book: 'Book', manga: 'Manga', manhwa: 'Manhwa' };
+const prints = cap(photos.filter((ph) => ph.image));
 const letter = (i: number) => String.fromCharCode(65 + i); // Exhibit A, B, C...
 // The commendation seal for award-winning projects: a serrated foil disc and a star, centred at (32, 30).
 const ring = (n: number, outer: number, inner: number, turn = 0) =>
@@ -28,7 +40,9 @@ const caption = (b: (typeof library)[number], i: number) =>
 // Wear grows with age: 0 for this year's books, 1 for 50 years or older.
 const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear() - year) / 50)).toFixed(2);
 ---
-<section class="intro">
+<div data-base={base} data-page={section ? pageTitle[section] : ''} hidden></div>
+{section && <h1 class="page-title">{pageTitle[section]}</h1>}
+{!section && <section class="intro">
   <TrainBanner />
   <h1>
     <span class="sr">Hi, I'm Bill.</span>
@@ -47,12 +61,12 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     Get to know <span class="nw"><a href="/about/">more about me</a>,</span> look through the <span class="nw"><a href="#exhibits">evidence</a>,</span>{" "}
     see what's on my <span class="nw"><a href="#library">shelf</a>,</span> read my <span class="nw"><a href="#writing">writing</a>,</span> or say hi at <a href={`mailto:${site.email}`}>{site.email}</a>.
   </p>
-</section>
+</section>}
 
-<section id="exhibits">
-  <div class="head"><h2 class="label">Exhibits</h2></div>
+{show('projects') && <section id="exhibits">
+  {!section && <div class="head"><h2 class="label">Exhibits</h2><a class="meta" href="/projects/">View all</a></div>}
   <div class="exhibits">
-    {projects.map((p, i) => (
+    {cap(projects).map((p, i) => (
       <a class="exhibit" href={`/projects/${p.id}/`} data-project={p.id}>
         {p.abstract
           ? <div class="shot news abstract" aria-hidden="true">
@@ -89,10 +103,26 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       </a>
     ))}
   </div>
-</section>
+</section>}
 
-<section id="library">
-  <div class="head"><h2 class="label">Library</h2></div>
+{section === 'library' && <section id="library">
+  <ol class="ledger">
+    {library.map((b, i) => (
+      <li>
+        <img class="thumb" src={b.cover} alt={`Cover of ${b.title}`} loading="lazy" />
+        <div>
+          <p class="item">Item {String(i + 1).padStart(2, '0')}</p>
+          <h2>{b.title}</h2>
+          <p class="meta">{kindName[b.kind]} · {b.author} · {b.year}</p>
+          <p class="plot">{b.summary}</p>
+        </div>
+      </li>
+    ))}
+  </ol>
+</section>}
+
+{!section && <section id="library">
+  <div class="head"><h2 class="label">Library</h2><a class="meta" href="/library/">View all</a></div>
   <div class="casefile">
     <span class="file-tab" aria-hidden="true">Case file · Reading</span>
     <span class="file-stamp" aria-hidden="true">Evidence</span>
@@ -108,17 +138,17 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     </div>
     <p class="log" id="shelf-caption" aria-live="polite">{caption(library[0], 0)}</p>
   </div>
-</section>
+</section>}
 
-<section id="writing">
+{!section && <section id="writing">
   <div class="head"><h2 class="label">Writing</h2>{posts.length > 0 && <a class="meta" href="/writing/">View all</a>}</div>
   {posts.length ? <PostList posts={posts} /> : <p class="meta">No posts yet. The first case notes are on their way.</p>}
-</section>
+</section>}
 
-<section id="photos">
-  <div class="head"><h2 class="label">Photos</h2></div>
+{show('photos') && <section id="photos">
+  {!section && <div class="head"><h2 class="label">Photos</h2><a class="meta" href="/photos/">View all</a></div>}
   <div class="photos">
-    {photos.filter((ph) => ph.image).map((ph) => (
+    {prints.map((ph) => (
       <figure>
         <button type="button" class="print news" data-full={ph.image} data-caption={ph.caption} aria-label={`View photo: ${ph.caption}`}>
           <span class="halftone" aria-hidden="true"><img src={ph.image} alt="" loading="lazy" /></span>
@@ -129,7 +159,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       </figure>
     ))}
   </div>
-</section>
+</section>}
 
 <dialog class="lightbox" aria-label="Photo">
   <button type="button" class="close-case on-dark" data-close>Return the evidence</button>
@@ -137,7 +167,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <p class="lightbox-caption"></p>
 </dialog>
 
-{projects.map((p, i) => (
+{show('projects') && projects.map((p, i) => (
   <dialog class="sheet" data-slug={p.id} data-title={p.title} aria-labelledby={`t-${p.id}`}>
     <div class="inner">
       <header class="running">
@@ -189,44 +219,49 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 ))}
 
 <script>
-  // Tagline: every few seconds, pick another random phrase and scramble into it, in a new font and color
-  // (the CSS sets each [data-look]). The heading greets in another language at the same time; Bill stays.
-  const el = document.getElementById('doing')!;
-  const words: string[] = JSON.parse(el.dataset.words!);
-  const hello = document.getElementById('hello')!;
-  const hellos: { lang: string; pre: string; post: string }[] = JSON.parse(hello.dataset.hellos!);
-  const [pre, post] = hello.querySelectorAll<HTMLElement>('.pre, .post');
-  const glyphs = 'abcdefghijklmnopqrstuvwxyz_<>/{}#*';
+  // This script serves the home page and the section pages, so each part checks that its section is there.
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const looks = 6;
-  const other = <T,>(list: T[], now: T) => { let n = now; while (n === now) n = list[Math.floor(Math.random() * list.length)]; return n; };
-  let current = words[0], greeting = hellos[0], look = 0;
 
-  const scramble = (el: HTMLElement, to: string) => {
-    if (calm) return void (el.textContent = to);
-    const start = performance.now();
-    const frame = (now: number) => {
-      const done = Math.min((now - start) / 600, 1); // 600 ms
-      const fixed = Math.floor(done * to.length);
-      el.textContent = to.slice(0, fixed) + [...to.slice(fixed)]
-        .map((c) => (c === ' ' ? ' ' : glyphs[Math.floor(Math.random() * glyphs.length)]))
-        .join('');
-      if (done < 1) requestAnimationFrame(frame);
+  // Tagline (home page only): every few seconds, pick another random phrase and scramble into it, in a
+  // new font and color (the CSS sets each [data-look]). The heading greets in another language at the
+  // same time; Bill stays.
+  const el = document.getElementById('doing');
+  if (el) {
+    const words: string[] = JSON.parse(el.dataset.words!);
+    const hello = document.getElementById('hello')!;
+    const hellos: { lang: string; pre: string; post: string }[] = JSON.parse(hello.dataset.hellos!);
+    const [pre, post] = hello.querySelectorAll<HTMLElement>('.pre, .post');
+    const glyphs = 'abcdefghijklmnopqrstuvwxyz_<>/{}#*';
+    const looks = 6;
+    const other = <T,>(list: T[], now: T) => { let n = now; while (n === now) n = list[Math.floor(Math.random() * list.length)]; return n; };
+    let current = words[0], greeting = hellos[0], look = 0;
+
+    const scramble = (el: HTMLElement, to: string) => {
+      if (calm) return void (el.textContent = to);
+      const start = performance.now();
+      const frame = (now: number) => {
+        const done = Math.min((now - start) / 600, 1); // 600 ms
+        const fixed = Math.floor(done * to.length);
+        el.textContent = to.slice(0, fixed) + [...to.slice(fixed)]
+          .map((c) => (c === ' ' ? ' ' : glyphs[Math.floor(Math.random() * glyphs.length)]))
+          .join('');
+        if (done < 1) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
     };
-    requestAnimationFrame(frame);
-  };
 
-  setInterval(() => {
-    if (document.hidden) return;
-    current = other(words, current);
-    look = other([...Array(looks).keys()], look);
-    el.dataset.look = String(look);
-    scramble(el, current);
-    greeting = other(hellos, greeting);
-    hello.lang = greeting.lang;
-    scramble(pre, greeting.pre);
-    scramble(post, greeting.post);
-  }, 3500);
+    setInterval(() => {
+      if (document.hidden) return;
+      current = other(words, current);
+      look = other([...Array(looks).keys()], look);
+      el.dataset.look = String(look);
+      scramble(el, current);
+      greeting = other(hellos, greeting);
+      hello.lang = greeting.lang;
+      scramble(pre, greeting.pre);
+      scramble(post, greeting.post);
+    }, 3500);
+  }
 
   // Library: clicking a spine opens that book and closes the one that was open.
   const shelfCaption = document.getElementById('shelf-caption')!;
@@ -295,14 +330,17 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   const sheets = new Map(
     [...document.querySelectorAll<HTMLDialogElement>('dialog.sheet')].map((d) => [d.dataset.slug!, d]),
   );
-  const homeTitle = document.title.split(' · ').pop()!;
+  // A closed sheet returns to the page it opened from: the home page or /projects/ (data-base).
+  const page = document.querySelector<HTMLElement>('[data-base]')!;
+  const siteName = document.title.split(' · ').pop()!;
+  const homeTitle = page.dataset.page ? `${page.dataset.page} · ${siteName}` : siteName;
   const slugOf = (path: string) => path.match(/^\/projects\/([^/]+)\/?$/)?.[1];
 
   const open = (slug: string, push: boolean, from?: { x: number; y: number }) => {
     const d = sheets.get(slug);
     if (!d || d.open) return;
     irisOpen(d, from);
-    document.title = `${d.dataset.title} · ${homeTitle}`;
+    document.title = `${d.dataset.title} · ${siteName}`;
     if (push) history.pushState({ sheet: slug }, '', `/projects/${slug}/`);
   };
 
@@ -323,7 +361,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       document.title = homeTitle;
       if (!slugOf(location.pathname)) return; // already closed by Back
       if (history.state?.sheet) history.back();
-      else history.replaceState(null, '', '/'); // opened from a direct link
+      else history.replaceState(null, '', page.dataset.base); // opened from a direct link
     });
   });
 
@@ -379,6 +417,25 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 <style>
 
   section { margin-top: 72px; }
+  /* A section page: its own heading, as on the Writing page, then the section close under it. */
+  .page-title { margin: 48px 0 0; font-size: 40px; }
+  .page-title + section { margin-top: 32px; }
+
+  /* The Library page: the shelf as a logged list, one item per row, as on nikospasion.com's library.
+     Each cover is a small print, like the Recognition thumbnails on the About page. */
+  .ledger { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .ledger li { display: grid; grid-template-columns: 72px 1fr; gap: 20px; align-items: start; padding: 20px 0; border-bottom: 1px dashed var(--line); }
+  .thumb {
+    width: 100%; aspect-ratio: 2 / 3; object-fit: cover; padding: 3px; background: #f4efe2;
+    transform: rotate(-1.5deg); filter: sepia(0.1);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 14px -8px rgb(0 0 0 / 0.5);
+  }
+  .ledger li:nth-child(even) .thumb { transform: rotate(1.2deg); }
+  .ledger .item { margin: 0; font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .ledger h2 { margin: 3px 0 2px; font-size: 20px; }
+  .ledger .meta { margin: 0 0 8px; font-size: 12px; }
+  .plot { margin: 0; font-size: 15px; line-height: 1.55; }
+  @media (max-width: 480px) { .ledger li { grid-template-columns: 56px 1fr; gap: 14px; } }
   .intro { margin-top: 48px; }
   h1 { font-size: clamp(36px, 8vw, 48px); margin: 0; }
   /* The name: the B from the logo (Limelight, in ink), then "ill" in the accent. */
@@ -492,7 +549,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .log { margin: 12px 0 0; font: 12px var(--mono); letter-spacing: 0.02em; text-align: center; }
 
   .book {
-    flex: none; position: relative; width: 36px; height: 236px; padding: 0; border: 0; border-radius: 2px 2px 0 0;
+    /* Closed spines shrink when the shelf is narrow, so every book fits on it (down to 15 px each). */
+    flex: 0 1 auto; min-width: 15px; position: relative; width: 36px; height: 236px; padding: 0; border: 0; border-radius: 2px 2px 0 0;
     background: var(--spine); color: var(--ink); cursor: pointer; overflow: hidden;
     box-shadow: 1px 0 2px rgb(0 0 0 / 0.18);
     /* Chipped corners grow with wear; the shape is shared by every layer of the book. */
@@ -507,6 +565,14 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .book[data-kind='manga'], .book[data-kind='manhwa'] { width: 30px; height: 208px; } /* smaller volumes */
   .book[aria-pressed='true'] { width: 150px; filter: sepia(calc(var(--wear) * 0.35)); }
   .book[aria-pressed='true']:is([data-kind='manga'], [data-kind='manhwa']) { width: 138px; }
+  .book[aria-pressed='true'] { flex-shrink: 0; }
+  /* On phones the open book is smaller and the spine labels finer, so all the spines fit beside it. */
+  @media (max-width: 480px) {
+    .book[aria-pressed='true'], .book[aria-pressed='true']:is([data-kind='manga'], [data-kind='manhwa']) { width: 108px; }
+    .shelf { gap: 2px; }
+    .spine .t { font-size: 8px; padding: 5px 1px; }
+    .spine .a { font-size: 7px; }
+  }
   .book:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   /* Round the spine: light on the left edge, shade on the right. */
   .book::after {
