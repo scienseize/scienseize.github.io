@@ -90,8 +90,8 @@ const external = (href: string) => !href.startsWith('mailto:');
       <a class="mark" href="/" aria-label={`${site.name}, home`}>B<span>.</span>C<span>.</span>A<span>.</span></a>
       <nav>
         {links.map((l) => <a href={l.href}>{l.label}</a>)}
-        <button id="theme" type="button" aria-label="Toggle dark mode">◐</button>
       </nav>
+      <button id="theme" type="button" aria-label="Toggle dark mode">◐</button>
     </header>
 
     <main><slot /></main>
@@ -258,10 +258,10 @@ const external = (href: string) => !href.startsWith('mailto:');
   main, .top, footer { max-width: 640px; margin: 0 auto; padding: 0 16px; }
 
   .top {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; gap: 16px;
     padding-top: 20px; padding-bottom: 20px;
   }
-  .mark { font: 26px/1 var(--deco); text-decoration: none; letter-spacing: 0.02em; }
+  .mark { font: 26px/1 var(--deco); text-decoration: none; letter-spacing: 0.02em; margin-right: auto; }
   .mark span { color: var(--accent); }
   .top nav { display: flex; align-items: center; gap: 16px; font: 13px var(--mono); }
   .top nav a { text-decoration: none; color: var(--muted); }
@@ -270,10 +270,11 @@ const external = (href: string) => !href.startsWith('mailto:');
     font: inherit; color: var(--ink); background: none; cursor: pointer;
     border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px;
   }
-  /* On phones the links drop under the logo and spread across the width, so none has to be hidden. */
+  /* On phones the theme button stays beside the logo, and the links drop to a row of their own under
+     them, spread across the width, so none has to be hidden and nothing runs off the edge. */
   @media (max-width: 480px) {
     .top { flex-wrap: wrap; row-gap: 12px; }
-    .top nav { width: 100%; justify-content: space-between; gap: 8px; }
+    .top nav { order: 1; width: 100%; justify-content: space-between; gap: 4px; }
   }
 
   .label {

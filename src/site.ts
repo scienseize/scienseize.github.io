@@ -29,7 +29,7 @@ export const site = {
   // fits on one line on a 320 px phone; keep new ones as short.
   hello: [
     { lang: 'en', pre: "Hi, I'm ", post: '.' },
-    { lang: 'fil', pre: 'Uy, ako si ', post: '.' },
+    { lang: 'fil', pre: '', post: ' nga pala.' },
     { lang: 'ja', pre: 'やあ、', post: 'だよ。' },
     { lang: 'ko', pre: '안녕, 난 ', post: '이야.' },
     { lang: 'zh-CN', pre: '你好，我是', post: '。' },

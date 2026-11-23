@@ -223,7 +223,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   // This script serves the home page and the section pages, so each part checks that its section is there.
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Tagline (home page only): every few seconds, pick another random phrase and scramble into it, in a
+  // Tagline (home page only): every few seconds, take the next phrase from a shuffled deck and scramble into it, in a
   // new font and color (the CSS sets each [data-look]). The heading greets in another language at the
   // same time; Bill stays.
   const el = document.getElementById('doing');
@@ -234,8 +234,20 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     const [pre, post] = hello.querySelectorAll<HTMLElement>('.pre, .post');
     const glyphs = 'abcdefghijklmnopqrstuvwxyz_<>/{}#*';
     const looks = 6;
-    const other = <T,>(list: T[], now: T) => { let n = now; while (n === now) n = list[Math.floor(Math.random() * list.length)]; return n; };
-    let current = words[0], greeting = hellos[0], look = 0;
+    // A shuffled deck: every item comes up once before any item repeats, then the deck is shuffled again.
+    // The item already on screen counts as dealt, and a new round never opens with the item just shown.
+    const deck = <T,>(list: T[], shown: T) => {
+      const shuffle = (a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+      let bag = shuffle(list.filter((x) => x !== shown)), last = shown;
+      return () => {
+        if (!bag.length) {
+          bag = shuffle([...list]);
+          if (bag[0] === last) { const j = 1 + Math.floor(Math.random() * (bag.length - 1)); [bag[0], bag[j]] = [bag[j], bag[0]]; }
+        }
+        return (last = bag.shift()!);
+      };
+    };
+    const nextWord = deck(words, words[0]), nextHello = deck(hellos, hellos[0]), nextLook = deck([...Array(looks).keys()], 0);
 
     const scramble = (el: HTMLElement, to: string) => {
       if (calm) return void (el.textContent = to);
@@ -253,11 +265,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
     setInterval(() => {
       if (document.hidden) return;
-      current = other(words, current);
-      look = other([...Array(looks).keys()], look);
-      el.dataset.look = String(look);
-      scramble(el, current);
-      greeting = other(hellos, greeting);
+      el.dataset.look = String(nextLook());
+      scramble(el, nextWord());
+      const greeting = nextHello();
       hello.lang = greeting.lang;
       scramble(pre, greeting.pre);
       scramble(post, greeting.post);
