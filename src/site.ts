@@ -39,7 +39,9 @@ export const site = {
   // The footer clock shows the time here. timeZone is an IANA name.
   place: 'Manila, PH',
   timeZone: 'Asia/Manila',
+  // The contact icons (side rail and footer) show every social with an href, after Email.
   socials: [
+    { label: 'Instagram', href: 'https://www.instagram.com/bbb1l7' },
     { label: 'GitHub', href: 'https://github.com/scienseize' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/billalc' },
     { label: 'X', href: '' }, // TODO

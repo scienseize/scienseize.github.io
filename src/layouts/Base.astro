@@ -9,6 +9,21 @@ const links = [
   { href: '/photos/', label: 'Photos' },
   { href: '/writing/', label: 'Writing' },
 ];
+// Contact icons, in the side rail (wide screens) and the footer (all screens): Email plus every social
+// with a link, in this order. Each icon is a small outline drawing on a 24 × 24 grid; a contact without
+// one shows its name instead.
+const order = ['Instagram', 'Email', 'GitHub', 'LinkedIn'];
+const rank = (label: string) => (order.indexOf(label) + 1) || order.length + 1;
+const contacts = [{ label: 'Email', href: `mailto:${site.email}` }, ...site.socials]
+  .filter((c) => c.href)
+  .sort((a, b) => rank(a.label) - rank(b.label));
+const icons: Record<string, string> = {
+  Instagram: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="16.7" cy="7.3" r="0.4"/>',
+  Email: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+  GitHub: '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>',
+  LinkedIn: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 11v5M8 8v.01M12 16v-5M16 16v-3a2 2 0 0 0-4 0"/>',
+};
+const external = (href: string) => !href.startsWith('mailto:');
 ---
 <!doctype html>
 <html lang="en">
@@ -54,12 +69,28 @@ const links = [
       </div>
       <div class="foot-row">
         <p>© {new Date().getFullYear()} {site.name}</p>
-        <ul>
-          <li><a href={`mailto:${site.email}`}>Email</a></li>
-          {site.socials.filter((s) => s.href).map((s) => <li><a href={s.href} rel="me">{s.label} ↗</a></li>)}
+        <ul class="contact-icons">
+          {contacts.map((c) => (
+            <li><a href={c.href} aria-label={c.label} title={c.label} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>
+              {icons[c.label] ? <svg viewBox="0 0 24 24" aria-hidden="true" set:html={icons[c.label]} /> : c.label}
+            </a></li>
+          ))}
         </ul>
       </div>
     </footer>
+
+    <!-- The contact rail: beside the column, centered on the screen. The icons hang on a red string that
+         ends in an evidence tag. -->
+    <nav class="rail" aria-label="Contact">
+      <span class="string" aria-hidden="true"></span>
+      {contacts.map((c) => (
+        <a href={c.href} aria-label={c.label} title={c.label} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>
+          {icons[c.label] ? <svg viewBox="0 0 24 24" aria-hidden="true" set:html={icons[c.label]} /> : c.label}
+        </a>
+      ))}
+      <span class="string" aria-hidden="true"></span>
+      <span class="evidence-tag" aria-hidden="true">Contact</span>
+    </nav>
 
     <div class="flashlight" aria-hidden="true"></div>
     <script is:inline>
@@ -227,4 +258,44 @@ const links = [
   footer nav a:hover { color: var(--ink); }
   .clock { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
   footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
+
+  /* Contact icons. Outline drawings in the muted ink; on hover or keyboard focus they lift a little and
+     take the red. The footer row shows on every screen. */
+  :is(.rail, .contact-icons) a {
+    display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); text-decoration: none;
+    transition: color 0.2s, transform 0.2s cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+  :is(.rail, .contact-icons) a:is(:hover, :focus-visible) { color: var(--accent); transform: translateY(-2px); }
+  :is(.rail, .contact-icons) a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  :is(.rail, .contact-icons) svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  footer .contact-icons { gap: 6px; }
+  @media (prefers-reduced-motion: reduce) { :is(.rail, .contact-icons) a { transition: color 0.2s; } :is(.rail, .contact-icons) a:is(:hover, :focus-visible) { transform: none; } }
+
+  /* The rail: fixed beside the content column, 32 px left of the text, and centered on the screen
+     height, so it stays put while the page scrolls. The column is 640 px wide with 16 px padding, so the
+     text starts at 50% - 304 px; the rail (34 px wide) ends 32 px before it. A red string fades in from
+     above, runs past the icons, and threads through the punched hole of a small evidence tag, like the
+     tags on the exhibit cards. It needs room beside the column, so below 800 px it is hidden and the
+     footer row carries the contacts alone. */
+  .rail {
+    position: fixed; z-index: 40; left: calc(50% - 304px - 32px - 34px); top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .rail .string { position: relative; z-index: 1; width: 1.5px; height: 56px; background: var(--accent); opacity: 0.75; }
+  .rail .string:first-child { height: 72px; background: linear-gradient(transparent, var(--accent)); } /* hangs from above */
+  .rail .string:has(+ .evidence-tag) { height: 44px; margin-bottom: -18px; } /* runs on into the tag's hole */
+  /* The tag: theme paper with its top corners cut, a punched hole, and "Contact" typed down its length.
+     It hangs a little crooked from the string. */
+  .evidence-tag {
+    position: relative; width: 22px; padding: 16px 0 9px; border-radius: 0 0 2px 2px;
+    background: var(--paper); box-shadow: inset 0 0 0 1px var(--line);
+    clip-path: polygon(28% 0, 72% 0, 100% 16px, 100% 100%, 0 100%, 0 16px);
+    writing-mode: vertical-rl; font: 500 9px/22px var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+    transform: rotate(-5deg); transform-origin: 50% 8px;
+  }
+  .evidence-tag::before {
+    content: ''; position: absolute; top: 5px; left: 50%; width: 6px; height: 6px; margin-left: -3px;
+    border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line);
+  }
+  @media (max-width: 799px) { .rail { display: none; } }
 </style>
