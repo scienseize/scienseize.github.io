@@ -32,7 +32,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <TrainBanner />
   <h1>
     <span class="sr">Hi, I'm Bill.</span>
-    <span aria-hidden="true" id="hello" data-hellos={JSON.stringify(site.hello)}><span class="pre">{site.hello[0].pre}</span>Bill<span class="post">{site.hello[0].post}</span></span>
+    <span aria-hidden="true" id="hello" data-hellos={JSON.stringify(site.hello)}><span class="pre">{site.hello[0].pre}</span><span class="name"><span class="b">B</span>ill</span><span class="post">{site.hello[0].post}</span></span>
   </h1>
   <p class="tagline">
     <em>currently</em> <span id="doing" class="doing" aria-hidden="true" data-words={JSON.stringify(site.doing)}>{site.doing[0]}</span><span class="sr">{site.doing[0]}</span>.
@@ -381,6 +381,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   section { margin-top: 72px; }
   .intro { margin-top: 48px; }
   h1 { font-size: clamp(36px, 8vw, 48px); margin: 0; }
+  /* The name: the B from the logo (Limelight, in ink), then "ill" in the accent. */
+  .name { color: var(--accent); }
+  .name .b { font-family: var(--deco); font-weight: 400; color: var(--ink); }
   .tagline { font: 20px var(--serif); margin: 4px 0 10px; color: var(--muted); }
   /* Role and place, then a one-line statement, as on nikospasion.com. */
   .role { margin: 0 0 22px; font: 13px var(--mono); letter-spacing: 0.02em; color: var(--muted); }
