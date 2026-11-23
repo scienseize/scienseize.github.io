@@ -45,7 +45,3 @@ The underdog who finally wins is a good story. The favorite who loses and choose
 Not because they know the next ending will be better.
 
 **Because they don't—and they try anyway.**
-
----
-
-*Context: [Coverage of the 2026 Worlds final](https://news.sbs.co.kr/english/article.do?cooper=SBSNEWSAMP&news_id=N1008846354) and [Gen.G's post-final reflections](https://ps-esports.kr/en/article/TcfsHOSe).*
