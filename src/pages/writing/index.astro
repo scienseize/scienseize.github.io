@@ -7,7 +7,7 @@ const posts = (await getCollection('writing', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 const years = [...new Set(posts.map((p) => p.data.date.getFullYear()))];
 ---
-<Base title="Writing">
+<Base title="Writing" description="Essays and notes by Bill C. Alcantara, an AI engineer in Manila.">
   <h1>Writing</h1>
   {posts.length === 0 && <p class="meta">No posts yet. The first case notes are on their way.</p>}
   {years.map((y) => (

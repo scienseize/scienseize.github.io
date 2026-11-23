@@ -15,7 +15,7 @@ const words = (post.body ?? '').split(/\s+/).filter(Boolean).length;
 const day = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
 const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
 ---
-<Base title={post.data.title} description={post.data.description}>
+<Base title={post.data.title} description={post.data.description} published={post.data.date}>
   <div class="casefile">
   <span class="file-tab" aria-hidden="true">Case file · Correspondence</span>
   <article class="telegram">
@@ -41,7 +41,7 @@ const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
 
     <div class="tape">
       <p><span>{dateLine}</span></p>
-      <h1><span>{post.data.title}=</span></h1>
+      <h1><span>{post.data.title}</span></h1>
     </div>
     {post.data.description && <p class="standfirst">{post.data.description}</p>}
     <div class="prose"><Content /></div>
@@ -140,6 +140,7 @@ const dateLine = `BCA ${words} WORDS PD=${site.place.replace(',', '')} ${day}=`;
   .tape { font: 500 clamp(12px, 3.3vw, 15px)/2.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--tape-ink); }
   .tape p, .tape h1 { margin: 0; }
   .tape h1 { font: inherit; font-size: 1.2em; }
+  .tape h1 span::after { content: '='; } /* the teleprinter's end mark, drawn so it stays out of the heading text */
   .tape span {
     padding: 2px 8px; background: #f4ebd2; box-shadow: 0 1px 1px rgb(60 40 15 / 0.22);
     -webkit-box-decoration-break: clone; box-decoration-break: clone;

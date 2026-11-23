@@ -3,6 +3,10 @@
 
 export const site = {
   name: 'Bill C. Alcantara',
+  // Used in the home heading, page descriptions, link previews and structured data.
+  role: 'AI engineer',
+  description: 'Bill C. Alcantara, an AI engineer in Manila who builds AI applications end to end, then takes them apart.',
+  image: '/og.jpg', // the 1200 × 630 card shown when a link to the site is shared
   // The home page tagline: "currently <one of these>." It picks a new one every few seconds.
   doing: [
     'optimizing models',
