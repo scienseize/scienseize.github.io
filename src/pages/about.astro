@@ -31,11 +31,12 @@ let fileCount = 0;
           <><b>{w[0]}</b>{w.slice(1).replace('.', '')}{(w.endsWith('.') || i === all.length - 1) && <i>.</i>}{i < all.length - 1 && ' '}</>
         ))}
       </figcaption>
+      <svg class="pen" aria-hidden="true"></svg>
     </figure>
     <dl>
-      {about.facts.map((f) => (<><dt class="label">{f.label}</dt><dd>{f.value}</dd></>))}
-      <dt class="label">Contact</dt>
-      <dd>
+      {about.facts.map((f, i) => (<><dt class="label" style={`--i:${i}`}>{f.label}</dt><dd style={`--i:${i}`}>{f.value}</dd></>))}
+      <dt class="label" style={`--i:${about.facts.length}`}>Contact</dt>
+      <dd style={`--i:${about.facts.length}`}>
         {[{ label: 'Email', href: `mailto:${site.email}` }, ...site.socials.filter((s) => s.href)].map((s, i) => (
           <>{i > 0 && ' · '}<a href={s.href}>{s.label}</a></>
         ))}
@@ -43,6 +44,13 @@ let fileCount = 0;
     </dl>
     <svg class="strings" aria-hidden="true"></svg>
   </div>
+  <script is:inline>
+    // The booking reveal (see the styles) plays on every load, a reload too, but not when Back or Forward
+    // returns to the page. It is set here, before the first paint, so the card never shows and then goes dark.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches && performance.getEntriesByType('navigation')[0]?.type !== 'back_forward') {
+      document.querySelector('.card').classList.add('booking');
+    }
+  </script>
 
   <div class="prose"><Content /></div>
   <figure class="peek-card" hidden aria-hidden="true"><img alt="" /><video muted loop playsinline preload="none" hidden></video><figcaption></figcaption></figure>
@@ -193,7 +201,9 @@ let fileCount = 0;
   const strings = card.querySelector<SVGSVGElement>('.strings')!;
   const drawStrings = () => {
     const c = card.getBoundingClientRect();
-    const p = card.querySelector('.print')!.getBoundingClientRect();
+    // The print's place comes from its figure, not the print itself: the print moves while it ejects.
+    const ev = card.querySelector('.evidence')!.getBoundingClientRect();
+    const p = { left: ev.left, right: ev.right, top: ev.top, height: card.querySelector<HTMLElement>('.print')!.offsetHeight };
     const facts = [...card.querySelectorAll('dt')].map((dt) => {
       const r = dt.getBoundingClientRect();
       return { x: r.left - c.left - 10, y: r.top - c.top + r.height / 2 };
@@ -201,20 +211,57 @@ let fileCount = 0;
     // Side by side: pin the photo's right edge. Stacked: pin its left edge, so the strings miss the name.
     const beside = facts[0].x > p.right - c.left;
     const from = { x: (beside ? p.right - 46 : p.left + 18) - c.left, y: p.top - c.top + p.height * (beside ? 0.42 : 0.8) };
-    const string = (q: { x: number; y: number }) => {
+    const string = (q: { x: number; y: number }, i: number) => {
       const sag = 8 + Math.hypot(q.x - from.x, q.y - from.y) * 0.08;
-      return `<path d="M${from.x} ${from.y}Q${(from.x + q.x) / 2} ${(from.y + q.y) / 2 + sag} ${q.x} ${q.y}"/>`;
+      return `<path pathLength="1" style="--i:${i}" d="M${from.x} ${from.y}Q${(from.x + q.x) / 2} ${(from.y + q.y) / 2 + sag} ${q.x} ${q.y}"/>`;
     };
-    const pin = (q: { x: number; y: number }) =>
-      `<circle class="pin" cx="${q.x}" cy="${q.y}" r="4.5"/><circle class="shine" cx="${q.x - 1.4}" cy="${q.y - 1.4}" r="1.3"/>`;
-    strings.innerHTML = facts.map(string).join('') + [from, ...facts].map(pin).join('');
+    const pin = (q: { x: number; y: number }, i: number) =>
+      `<g class="${i < 0 ? 'origin' : ''}" style="--i:${i}"><circle class="pin" cx="${q.x}" cy="${q.y}" r="4.5"/><circle class="shine" cx="${q.x - 1.4}" cy="${q.y - 1.4}" r="1.3"/></g>`;
+    strings.innerHTML = facts.map(string).join('') + pin(from, -1) + facts.map(pin).join('');
   };
   new ResizeObserver(drawStrings).observe(card);
   document.fonts.ready.then(drawStrings);
 
-  // Things I do and Outside of code: each heading and paragraph types itself out, word by word,
-  // the first time it scrolls into view. The words keep their space, so nothing moves. Off for
-  // reduced motion.
+  // Booking reveal: the pen letters sit on the real name. Each one is measured: its x from the text,
+  // and the shared baseline from an empty inline block. Once they and the strings are drawn, let the
+  // paused animations run, then clear the classes and the pen.
+  const pen = card.querySelector<SVGSVGElement>('.pen')!;
+  const writeName = () => {
+    const name = card.querySelector<HTMLElement>('.namesake')!;
+    const e = card.querySelector('.evidence')!.getBoundingClientRect();
+    const probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0';
+    name.append(probe);
+    const base = probe.getBoundingClientRect().top - e.top;
+    probe.remove();
+    const range = document.createRange(), walker = document.createTreeWalker(name, NodeFilter.SHOW_TEXT);
+    let k = 0, out = '';
+    while (walker.nextNode()) {
+      const t = walker.currentNode as Text, cs = getComputedStyle(t.parentElement!), size = parseFloat(cs.fontSize);
+      [...t.data].forEach((ch, i) => {
+        if (!ch.trim()) return;
+        range.setStart(t, i); range.setEnd(t, i + 1);
+        const x = range.getBoundingClientRect().left - e.left;
+        out += `<text x="${x}" y="${base}" font-size="${size}" style="--k:${k++};--len:${size * 6}px;color:${cs.color}">${ch}</text>`;
+      });
+    }
+    pen.innerHTML = out;
+  };
+  if (card.classList.contains('booking')) {
+    document.fonts.ready.then(() => requestAnimationFrame(() => {
+      writeName();
+      card.classList.add('rolling');
+      setTimeout(() => {
+        card.classList.remove('booking', 'rolling'); pen.innerHTML = '';
+        card.dispatchEvent(new Event('booked')); // the opening paragraph types next (see below)
+      }, 3900);
+    }));
+  }
+
+  // The text types itself out, word by word. The opening paragraph types once the booking reveal ends
+  // (the 'booked' event); without a reveal it simply shows. Every heading and paragraph after it types
+  // the first time it scrolls into view, but never before the opening paragraph has finished. The words
+  // keep their space, so nothing moves. Off for reduced motion.
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const io = new IntersectionObserver((entries) => entries.forEach((en) => {
       if (!en.isIntersecting) return;
@@ -222,12 +269,21 @@ let fileCount = 0;
       io.unobserve(en.target);
     }), { rootMargin: '0px 0px -15% 0px' });
 
-    document.querySelectorAll<HTMLElement>('.prose h2, .prose h2 ~ p').forEach((block) => {
-      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-      const texts: Text[] = [];
-      while (walker.nextNode()) texts.push(walker.currentNode as Text);
+    const opening = card.classList.contains('booking') ? '.prose > p:not(h2 ~ p), ' : '';
+    document.querySelectorAll<HTMLElement>(`${opening}.prose h2, .prose h2 ~ p`).forEach((block) => {
+      // Text, and empty elements such as the Kitchen wordmark, which count as one word.
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+      const texts: (Text | HTMLElement)[] = [];
+      while (walker.nextNode()) {
+        const n = walker.currentNode;
+        if (n instanceof Text || !n.hasChildNodes()) texts.push(n as Text | HTMLElement);
+      }
       let i = 0;
       texts.forEach((t) => {
+        if (!(t instanceof Text)) {
+          t.classList.add('w');
+          return void t.style.setProperty('--i', String(i++));
+        }
         const words = document.createDocumentFragment();
         t.data.split(/(\s+)/).forEach((part) => {
           if (!part.trim()) return void words.append(part);
@@ -240,8 +296,16 @@ let fileCount = 0;
         t.replaceWith(words);
       });
       block.classList.add('typing');
-      io.observe(block);
     });
+
+    const intro = opening ? document.querySelector<HTMLElement>('.prose > p.typing') : null;
+    const later = document.querySelectorAll<HTMLElement>('.prose h2, .prose h2 ~ p');
+    const watch = () => later.forEach((b) => io.observe(b));
+    if (!intro) watch();
+    else card.addEventListener('booked', () => {
+      intro.classList.add('typed');
+      setTimeout(watch, intro.querySelectorAll('.w').length * 35); // 35 ms a word, as in the styles
+    }, { once: true });
   }
 </script>
 
@@ -257,7 +321,7 @@ let fileCount = 0;
 
   /* The portrait as evidence: a print with a paper border, tilted and taped to the board,
      with the name below in the B.C.A. red and circled in red pen. */
-  .evidence { margin: 14px 0 0; width: 180px; }
+  .evidence { position: relative; margin: 14px 0 0; width: 180px; }
   .print {
     position: relative; padding: 8px; background: #f4efe2; transform: rotate(-2.5deg);
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 12px 22px -12px rgb(0 0 0 / 0.55);
@@ -279,6 +343,51 @@ let fileCount = 0;
   dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; align-items: baseline; }
   dd { margin: 0; }
   @media (max-width: 480px) { .card { grid-template-columns: 1fr; } .evidence { margin-inline: auto; } }
+
+  /* Booking: the portrait comes out of a Polaroid camera. The blank print slides out of a slot at its top
+     edge (0 to 0.9 s), tilts as it is laid on the board, and the tape presses it down (1.5 s). The picture
+     comes up in black and white while it ejects, holds, and the color comes in once it is taped (1.6 s
+     to 2.6 s). Then the pins go in, the red strings run out to each fact, and the name is written in pen,
+     letter by letter, before the ink fills in. The inline script adds .booking, which holds every
+     animation on its first frame; the module script draws the strings and the pen letters, then adds
+     .rolling to play them. Reduced motion never gets .booking. */
+  .booking:not(.rolling) :global(*), .booking:not(.rolling) .print::before { animation-play-state: paused !important; }
+  /* The slot: the print moves down by the same share that its clip opens, so its visible top edge stays
+     put. Linear, like a camera's motor. */
+  .booking .print { animation: eject 1200ms linear backwards; }
+  @keyframes eject {
+    0% { transform: translateY(-100%) rotate(0deg); clip-path: inset(100% -40px -40px -40px); }
+    75% { transform: translateY(0) rotate(0deg); clip-path: inset(0 -40px -40px -40px); animation-timing-function: ease-out; }
+    100% { transform: translateY(0) rotate(-2.5deg); clip-path: inset(0 -40px -40px -40px); }
+  }
+  .booking .print::before { animation: tape 280ms ease-in 1500ms backwards; }
+  @keyframes tape { from { opacity: 0; transform: translateX(-50%) translateY(-12px) rotate(9deg) scale(1.15); } }
+  /* Every keyframe lists the same filters in the same order, so the browser can blend between them. */
+  .booking .print img { animation: develop 2600ms ease-out backwards; }
+  @keyframes develop {
+    0%, 15% { filter: grayscale(1) sepia(0) saturate(1) contrast(0.04) brightness(1.7); }
+    50%, 62% { filter: grayscale(1) sepia(0) saturate(1) contrast(1.15) brightness(0.95); }
+    100% { filter: grayscale(0) sepia(0.12) saturate(0.92) contrast(1) brightness(1); }
+  }
+  .booking .strings :global(path) { stroke-dasharray: 1; animation: draw 400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(1950ms + var(--i) * 150ms) backwards; }
+  @keyframes draw { from { stroke-dashoffset: 1; } }
+  .booking .strings :global(g) { transform-box: fill-box; transform-origin: center; animation: pin-in 240ms ease-in calc(2310ms + var(--i) * 150ms) backwards; }
+  .booking .strings :global(g.origin) { animation-delay: 1900ms; }
+  @keyframes pin-in { from { opacity: 0; transform: scale(2.2); } 70% { transform: scale(0.9); } }
+  .booking dl > * { animation: fact-in 300ms ease-out calc(2310ms + var(--i) * 150ms) backwards; }
+  @keyframes fact-in { from { opacity: 0; transform: translateX(-6px); } }
+  /* The signature: each letter's outline is traced in pen (55 ms apart, from 2.4 s), then the name's
+     ink fades in as the pen lines fade out. */
+  .pen { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; font-family: var(--deco); }
+  .pen :global(text) {
+    fill: none; stroke: currentColor; stroke-width: 0.8; stroke-linejoin: round; stroke-dasharray: var(--len);
+    animation: trace 320ms ease-in-out calc(2400ms + var(--k) * 55ms) backwards;
+  }
+  @keyframes trace { from { stroke-dashoffset: var(--len); } }
+  .booking .pen { animation: fade 300ms 3500ms forwards; }
+  @keyframes fade { to { opacity: 0; } }
+  .booking .namesake { animation: ink 350ms ease 3450ms backwards; }
+  @keyframes ink { from { opacity: 0; } }
 
   .prose { margin-top: 40px; font-size: 18px; }
   .prose :global(h2) { font-size: 24px; margin-top: 40px; }
