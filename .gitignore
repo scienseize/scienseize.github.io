@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # local Claude preview config
 .claude/
+
+# Local notes saved by Claude Code plugins
+CLAUDE.md
