@@ -22,7 +22,6 @@ export const GET: APIRoute = async ({ site: origin }) => {
     `- [About](${url('/about/')}): background, experience, leadership and recognition`,
     `- [Projects](${url('/projects/')}): every project, with write-ups`,
     `- [Writing](${url('/writing/')}): essays`,
-    `- [Library](${url('/library/')}): books, manga and manhwa, with short plot summaries`,
     `- [Photos](${url('/photos/')}): competitions, hackathons and events`,
     '',
     '## Projects',

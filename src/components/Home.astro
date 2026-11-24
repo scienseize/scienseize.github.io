@@ -5,17 +5,17 @@ import TrainBanner from './TrainBanner.astro';
 import { site, library, photos } from '../site';
 
 // The home page shows every section, each capped at 6 items with a "View all" link; the shelf is the
-// exception and holds every book. A section page (/projects/, /library/, /photos/) passes `section`
-// and shows only that section, in full. The Library page lists the books with their plots instead.
+// exception and holds every book. A section page (/projects/, /photos/) passes `section`
+// and shows only that section, in full.
 // project: on a project's own link (/projects/<slug>/), its title, added to the heading for search engines.
-interface Props { section?: 'projects' | 'library' | 'photos'; project?: string }
+interface Props { section?: 'projects' | 'photos'; project?: string }
 const { section, project } = Astro.props;
 const show = (s: string) => !section || section === s;
 const cap = <T,>(list: T[]) => (section ? list : list.slice(0, 6));
 const base = section ? `/${section}/` : '/'; // where a closed project sheet returns to
-const pageTitle = { projects: 'Projects', library: 'Library', photos: 'Photos' };
+const pageTitle = { projects: 'Projects', photos: 'Photos' };
 // The headline on each section page, under its label.
-const pageHead = { projects: 'Things I built.', library: 'Things I read.', photos: 'Places I showed up.' };
+const pageHead = { projects: 'Things I built.', photos: 'Places I showed up.' };
 
 const posts = (await getCollection('writing', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -25,7 +25,6 @@ const projects = await Promise.all(
     .sort((a, b) => a.data.order - b.data.order)
     .map(async (p) => ({ id: p.id, ...p.data, Content: (await render(p)).Content })),
 );
-const kindName = { book: 'Book', manga: 'Manga', manhwa: 'Manhwa' };
 const prints = cap(photos.filter((ph) => ph.image));
 const letter = (i: number) => String.fromCharCode(65 + i); // Exhibit A, B, C...
 // The commendation seal for award-winning projects: a serrated foil disc and a star, centred at (32, 30).
@@ -57,16 +56,36 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <p class="tagline">
     <em>currently</em> <span id="doing" class="doing" aria-hidden="true" data-words={JSON.stringify(site.doing)}>{site.doing[0]}</span><span class="sr">{site.doing[0]}</span>.
   </p>
-  <p class="role">{site.role} · Manila, Philippines</p>
-  <p class="thesis">I build AI, then I take it apart.</p>
   <p>
-    I build AI applications end to end, from the model to the interface people use.
-    Then I look inside: I measure what it costs to run, test what it really understands, and find where it breaks.
+    This is where I keep the things I've made, the books I can't stop talking about,
+    and the odd thought that got too long for a group chat.
   </p>
   <p>
-    Get to know <span class="nw"><a href="/about/">more about me</a>,</span> look through the <span class="nw"><a href="#exhibits">evidence</a>,</span>{" "}
-    see what's on my <span class="nw"><a href="#library">shelf</a>,</span> read my <span class="nw"><a href="#writing">writing</a>,</span> or say hi at <a href={`mailto:${site.email}`}>{site.email}</a>.
+    None of it is polished to a shine. Some of it worked, some of it didn't, and honestly I learned more from the second pile.
   </p>
+  <p>
+    If you want the longer story, there's <a href="/about/">more about me here</a>.
+    Or just say hi at <a href={`mailto:${site.email}`}>{site.email}</a>, about anything.
+  </p>
+</section>}
+
+{!section && <section id="library">
+  <div class="head"><h2 class="label">Library</h2></div>
+  <div class="casefile">
+    <span class="file-tab" aria-hidden="true">Case file · Reading</span>
+    <span class="file-stamp" aria-hidden="true">Evidence</span>
+    <div class="shelf" role="group" aria-label="Books, manga and manhwa">
+      {library.map((b, i) => (
+        <button type="button" class="book" data-kind={b.kind} aria-pressed={i === 0 ? 'true' : 'false'} aria-label={b.title}
+          data-caption={caption(b, i)} style={`--spine:${b.color};--ink:${b.ink};--wear:${wear(b.year)}`}>
+          <span class="spine" aria-hidden="true"><span class="t">{b.title}</span><span class="a">{initials(b.author)}</span></span>
+          <img class="cover" src={b.cover} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
+          <span class="wear" aria-hidden="true"></span><span class="foxing" aria-hidden="true"></span><span class="stain" aria-hidden="true"></span>
+        </button>
+      ))}
+    </div>
+    <p class="log" id="shelf-caption" aria-live="polite">{caption(library[0], 0)}</p>
+  </div>
 </section>}
 
 {show('projects') && <section id="exhibits">
@@ -108,41 +127,6 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
         </div>
       </a>
     ))}
-  </div>
-</section>}
-
-{section === 'library' && <section id="library">
-  <ol class="ledger">
-    {library.map((b, i) => (
-      <li>
-        <img class="thumb" src={b.cover} alt={`Cover of ${b.title}`} loading="lazy" />
-        <div>
-          <p class="item">Item {String(i + 1).padStart(2, '0')}</p>
-          <h2>{b.title}</h2>
-          <p class="meta">{kindName[b.kind]} · {b.author} · {b.year}</p>
-          <p class="plot">{b.summary}</p>
-        </div>
-      </li>
-    ))}
-  </ol>
-</section>}
-
-{!section && <section id="library">
-  <div class="head"><h2 class="label">Library</h2><a class="meta" href="/library/">View all</a></div>
-  <div class="casefile">
-    <span class="file-tab" aria-hidden="true">Case file · Reading</span>
-    <span class="file-stamp" aria-hidden="true">Evidence</span>
-    <div class="shelf" role="group" aria-label="Books, manga and manhwa">
-      {library.map((b, i) => (
-        <button type="button" class="book" data-kind={b.kind} aria-pressed={i === 0 ? 'true' : 'false'} aria-label={b.title}
-          data-caption={caption(b, i)} style={`--spine:${b.color};--ink:${b.ink};--wear:${wear(b.year)}`}>
-          <span class="spine" aria-hidden="true"><span class="t">{b.title}</span><span class="a">{initials(b.author)}</span></span>
-          <img class="cover" src={b.cover} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
-          <span class="wear" aria-hidden="true"></span><span class="foxing" aria-hidden="true"></span><span class="stain" aria-hidden="true"></span>
-        </button>
-      ))}
-    </div>
-    <p class="log" id="shelf-caption" aria-live="polite">{caption(library[0], 0)}</p>
   </div>
 </section>}
 
@@ -442,21 +426,6 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   /* A section page: its own heading, as on the Writing page, then the section close under it. */
   .page-head + section { margin-top: 0; }
 
-  /* The Library page: the shelf as a logged list, one item per row, as on nikospasion.com's library.
-     Each cover is a small print, like the Recognition thumbnails on the About page. */
-  .ledger { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-  .ledger li { display: grid; grid-template-columns: 72px 1fr; gap: 20px; align-items: start; padding: 20px 0; border-bottom: 1px dashed var(--line); }
-  .thumb {
-    width: 100%; height: auto; padding: 3px; background: #f4efe2; /* the whole cover, in its own shape */
-    transform: rotate(-1.5deg); filter: sepia(0.1);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 14px -8px rgb(0 0 0 / 0.5);
-  }
-  .ledger li:nth-child(even) .thumb { transform: rotate(1.2deg); }
-  .ledger .item { margin: 0; font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
-  .ledger h2 { margin: 3px 0 2px; font-size: 20px; }
-  .ledger .meta { margin: 0 0 8px; font-size: 12px; }
-  .plot { margin: 0; font-size: 15px; line-height: 1.55; }
-  @media (max-width: 480px) { .ledger li { grid-template-columns: 56px 1fr; gap: 14px; } }
   .intro { margin-top: 48px; }
   /* Always one line, so the page under it never jumps. The scramble letters are wider than real ones, so
      while a greeting scrambles its tail may run past the edge for a moment; that part is clipped, not wrapped. */
@@ -464,12 +433,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   /* The name: the B from the logo (Limelight, in ink), then "ill" in the accent. */
   .name { color: var(--accent); }
   .name .b { font-family: var(--deco); font-weight: 400; color: var(--ink); }
-  .tagline { font: 20px var(--serif); margin: 4px 0 10px; color: var(--muted); }
-  /* Role and place, then a one-line statement, as on nikospasion.com. */
-  .role { margin: 0 0 22px; font: 13px var(--mono); letter-spacing: 0.02em; color: var(--muted); }
-  .thesis { margin: 0 0 12px; font: 600 clamp(22px, 5vw, 26px)/1.25 var(--serif); }
+  .tagline { font: 20px var(--serif); margin: 4px 0 22px; color: var(--muted); }
   /* Intro links lean in slightly on hover, like a word under a magnifying glass. */
-  .nw { white-space: nowrap; } /* keep a link and its comma on one line */
   .intro p a {
     display: inline-block; text-decoration-color: var(--muted);
     transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.2, 1), color 0.2s;

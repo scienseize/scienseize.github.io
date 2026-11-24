@@ -7,7 +7,7 @@ export const GET: APIRoute = async ({ site }) => {
   const projects = await getCollection('projects');
   const posts = await getCollection('writing', (p) => !p.data.draft);
   const pages: { path: string; lastmod?: Date }[] = [
-    ...['/', '/about/', '/projects/', '/library/', '/photos/', '/writing/'].map((path) => ({ path })),
+    ...['/', '/about/', '/projects/', '/photos/', '/writing/'].map((path) => ({ path })),
     ...projects.map((p) => ({ path: `/projects/${p.id}/` })),
     ...posts.map((p) => ({ path: `/writing/${p.id}/`, lastmod: p.data.date })),
   ];

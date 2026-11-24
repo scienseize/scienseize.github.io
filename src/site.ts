@@ -138,36 +138,22 @@ export const timeline: { heading: string; entries: Entry[] }[] = [
   },
 ];
 
-// The shelf on the home page, and the list on the Library page. cover is in public/library/; color and
+// The shelf on the home page. cover is in public/library/; color and
 // ink are the spine and its text. year is the first publication; older books show more wear.
-// summary is the two-line plot shown on the Library page.
-export const library: { title: string; year: number; author: string; kind: 'book' | 'manga' | 'manhwa'; cover: string; color: string; ink: string; summary: string }[] = [
-  { title: 'Sun and Steel', year: 1968, author: 'Yukio Mishima', kind: 'book', cover: '/library/sun-and-steel.webp', color: '#C8322A', ink: '#fff',
-    summary: 'Mishima on building his body through weights and kendo after a life of words. A meditation on flesh, action and the limits of language.' },
-  { title: 'Dungeon Crawler Carl', year: 2020, author: 'Matt Dinniman', kind: 'book', cover: '/library/dungeon-crawler-carl.webp', color: '#F2C21B', ink: '#17160f',
-    summary: 'Aliens turn Earth into a deadly dungeon for a galactic game show. Carl and Princess Donut, a cat, fight their way down floor by floor.' },
-  { title: "We'll Prescribe You a Cat", year: 2023, author: 'Syou Ishida', kind: 'book', cover: '/library/prescribe-a-cat.webp', color: '#EFEAE0', ink: '#17160f',
-    summary: 'A clinic hidden down a Kyoto alley treats troubled patients with one odd remedy: a cat. Each week with one mends what medicine could not.' },
-  { title: 'Strange Pictures', year: 2022, author: 'Uketsu', kind: 'book', cover: '/library/strange-pictures.webp', color: '#7CCB4A', ink: '#17160f',
-    summary: 'A mystery told through a handful of drawings. Each one hides a clue, and together they reveal a chain of crimes across decades.' },
-  { title: 'Murder on the Orient Express', year: 1934, author: 'Agatha Christie', kind: 'book', cover: '/library/orient-express.webp', color: '#3F3B2C', ink: '#fff',
-    summary: 'Snowbound on the Orient Express, a passenger is found stabbed twelve times. Poirot has a carriage of suspects and one night to solve it.' },
-  { title: 'The A.B.C. Murders', year: 1936, author: 'Agatha Christie', kind: 'book', cover: '/library/abc-murders.webp', color: '#7A2E22', ink: '#fff',
-    summary: 'A killer taunts Poirot by letter, then strikes town by town in alphabetical order, leaving an ABC railway guide beside each victim.' },
-  { title: 'Eternally Regressing Knight', year: 2024, author: 'Soulpung', kind: 'manhwa', cover: '/library/eternally-regressing-knight.webp', color: '#5B4030', ink: '#fff',
-    summary: 'Encrid has no talent, only the dream of becoming a knight. Each time he dies, the same day starts over, until he gets it right.' },
-  { title: 'Raising Villains the Right Way', year: 2025, author: 'Bomhanbangul', kind: 'manhwa', cover: '/library/raising-villains.webp', color: '#3A1E3A', ink: '#fff',
-    summary: 'An office worker wakes inside a game as a noble fated to die by future villains. The plan to survive: raise them right.' },
-  { title: 'Star Embracing Swordmaster', year: 2023, author: 'Q10', kind: 'manhwa', cover: '/library/star-embracing-swordmaster.webp', color: '#1E4F7A', ink: '#fff',
-    summary: 'Vlad, an orphan from slums run by crime bosses, takes up the sword. He climbs from the gutter to serve a noble house, one hard-won fight at a time.' },
-  { title: 'Got Dropped into a Ghost Story, Still Gotta Work', year: 2026, author: 'Baek Deok-su', kind: 'manhwa', cover: '/library/ghost-story-still-gotta-work.webp', color: '#2A2A30', ink: '#fff',
-    summary: "At a company that deals in ghost stories, the staff keep falling into them. The job: learn each horror's rules, survive, clock in." },
-  { title: '20th Century Boys', year: 1999, author: 'Naoki Urasawa', kind: 'manga', cover: '/library/20th-century-boys.webp', color: '#E4DED0', ink: '#17160f',
-    summary: 'As kids, Kenji and his friends invented a story about the end of the world. Decades later, a cult leader starts making it come true.' },
-  { title: 'Katekyo Hitman Reborn!', year: 2004, author: 'Akira Amano', kind: 'manga', cover: '/library/katekyo-hitman-reborn.webp', color: '#F2D23A', ink: '#17160f',
-    summary: 'Tsuna, a hopeless middle schooler, learns he is heir to a mafia family. His tutor is Reborn, a deadly hitman who looks like a baby.' },
-  { title: 'Detective Conan', year: 1994, author: 'Gosho Aoyama', kind: 'manga', cover: '/library/detective-conan.webp', color: '#D9A441', ink: '#17160f',
-    summary: 'Teen detective Shinichi Kudo is poisoned and shrunk into a child. As Conan Edogawa, he solves cases while hunting the syndicate behind it.' },
+export const library: { title: string; year: number; author: string; kind: 'book' | 'manga' | 'manhwa'; cover: string; color: string; ink: string }[] = [
+  { title: 'Sun and Steel', year: 1968, author: 'Yukio Mishima', kind: 'book', cover: '/library/sun-and-steel.webp', color: '#C8322A', ink: '#fff' },
+  { title: 'Dungeon Crawler Carl', year: 2020, author: 'Matt Dinniman', kind: 'book', cover: '/library/dungeon-crawler-carl.webp', color: '#F2C21B', ink: '#17160f' },
+  { title: "We'll Prescribe You a Cat", year: 2023, author: 'Syou Ishida', kind: 'book', cover: '/library/prescribe-a-cat.webp', color: '#EFEAE0', ink: '#17160f' },
+  { title: 'Strange Pictures', year: 2022, author: 'Uketsu', kind: 'book', cover: '/library/strange-pictures.webp', color: '#7CCB4A', ink: '#17160f' },
+  { title: 'Murder on the Orient Express', year: 1934, author: 'Agatha Christie', kind: 'book', cover: '/library/orient-express.webp', color: '#3F3B2C', ink: '#fff' },
+  { title: 'The A.B.C. Murders', year: 1936, author: 'Agatha Christie', kind: 'book', cover: '/library/abc-murders.webp', color: '#7A2E22', ink: '#fff' },
+  { title: 'Eternally Regressing Knight', year: 2024, author: 'Soulpung', kind: 'manhwa', cover: '/library/eternally-regressing-knight.webp', color: '#5B4030', ink: '#fff' },
+  { title: 'Raising Villains the Right Way', year: 2025, author: 'Bomhanbangul', kind: 'manhwa', cover: '/library/raising-villains.webp', color: '#3A1E3A', ink: '#fff' },
+  { title: 'Star Embracing Swordmaster', year: 2023, author: 'Q10', kind: 'manhwa', cover: '/library/star-embracing-swordmaster.webp', color: '#1E4F7A', ink: '#fff' },
+  { title: 'Got Dropped into a Ghost Story, Still Gotta Work', year: 2026, author: 'Baek Deok-su', kind: 'manhwa', cover: '/library/ghost-story-still-gotta-work.webp', color: '#2A2A30', ink: '#fff' },
+  { title: '20th Century Boys', year: 1999, author: 'Naoki Urasawa', kind: 'manga', cover: '/library/20th-century-boys.webp', color: '#E4DED0', ink: '#17160f' },
+  { title: 'Katekyo Hitman Reborn!', year: 2004, author: 'Akira Amano', kind: 'manga', cover: '/library/katekyo-hitman-reborn.webp', color: '#F2D23A', ink: '#17160f' },
+  { title: 'Detective Conan', year: 1994, author: 'Gosho Aoyama', kind: 'manga', cover: '/library/detective-conan.webp', color: '#D9A441', ink: '#17160f' },
 ];
 
 export const photos: { image?: string; caption: string }[] = [
