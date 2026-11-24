@@ -74,7 +74,7 @@ const external = (href: string) => !href.startsWith('mailto:');
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Fira+Code:wght@400;500&family=Fira+Sans:ital,wght@0,400;0,500;1,400&family=Inter+Tight:wght@400;600&family=Limelight&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400&family=Special+Elite&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Fira+Code:wght@400;500&family=Fira+Sans:ital,wght@0,400;0,500;1,400&family=Inter+Tight:wght@600&family=Limelight&family=Lora:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400&family=Special+Elite&display=swap"
     />
     <script is:inline>
       // Set the theme before paint so there is no flash.
@@ -187,6 +187,7 @@ const external = (href: string) => !href.startsWith('mailto:');
     --sans: 'Fira Sans', 'Helvetica Neue', Arial, sans-serif;
     --mono: 'Fira Code', ui-monospace, Menlo, monospace;
     --deco: Limelight, Georgia, serif;
+    --article: Lora, Georgia, serif; /* writing posts, as on Substack */
     --display: 'Inter Tight', 'Helvetica Neue', Arial, sans-serif; /* section page headers */
     /* Flashlight: warm light in the beam, dimming outside it. In light mode the layer multiplies,
        so the beam tints the paper warm without washing out the text. */
@@ -283,12 +284,12 @@ const external = (href: string) => !href.startsWith('mailto:');
     color: var(--muted); margin: 0;
   }
   .meta { font: 13px var(--mono); color: var(--muted); }
-  /* A section page's header: a small "// Section" label, a short headline, and one line that says
-     what the page holds. Set in Inter Tight, as on nikospasion.com. */
+  /* A section page's header: a small label with a red square before it, then a short headline,
+     set in Inter Tight, as on nikospasion.com. */
   .page-head { margin: 48px 0 32px; }
-  .page-head .kicker { margin: 0; font: 13px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .page-head .kicker { display: flex; align-items: center; gap: 10px; margin: 0; font: 13px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .page-head .kicker::before { content: ''; width: 7px; height: 7px; background: var(--accent); }
   .page-head h1 { margin: 10px 0 0; font: 600 clamp(36px, 9vw, 52px)/1.05 var(--display); letter-spacing: -0.03em; text-wrap: balance; }
-  .page-head .page-desc { margin: 14px 0 0; font: 400 clamp(18px, 4.6vw, 21px)/1.5 var(--display); letter-spacing: -0.005em; color: var(--muted); text-wrap: pretty; }
 
   footer {
     margin-top: 96px; padding-top: 24px; padding-bottom: 48px;

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Signature from '../components/Signature.astro';
 import { Content } from '../about.md';
 import { getCollection } from 'astro:content';
 import { site, about, timeline, photos } from '../site';
@@ -20,9 +21,8 @@ let fileCount = 0;
 ---
 <Base title="About" description="About Bill C. Alcantara, an AI engineer in Manila: experience, leadership, awards, and life outside of code.">
   <header class="page-head">
-    <p class="kicker">// About</p>
+    <p class="kicker">About</p>
     <h1>Who I am.</h1>
-    <p class="page-desc">Where I have worked, what I have won, and what I do outside of code.</p>
   </header>
 
   <div class="card">
@@ -30,12 +30,7 @@ let fileCount = 0;
       <div class="print">
         {about.photo ? <img src={about.photo} alt={`Portrait of ${site.name}`} /> : <div class="photo" />}
       </div>
-      <figcaption class="namesake">
-        {site.name.split(' ').map((w, i, all) => (
-          <><b>{w[0]}</b>{w.slice(1).replace('.', '')}{(w.endsWith('.') || i === all.length - 1) && <i>.</i>}{i < all.length - 1 && ' '}</>
-        ))}
-      </figcaption>
-      <svg class="pen" aria-hidden="true"></svg>
+      <figcaption class="namesake"><Signature /></figcaption>
     </figure>
     <dl>
       {about.facts.map((f, i) => (<><dt class="label" style={`--i:${i}`}>{f.label}</dt><dd style={`--i:${i}`}>{f.value}</dd></>))}
@@ -226,39 +221,16 @@ let fileCount = 0;
   new ResizeObserver(drawStrings).observe(card);
   document.fonts.ready.then(drawStrings);
 
-  // Booking reveal: the pen letters sit on the real name. Each one is measured: its x from the text,
-  // and the shared baseline from an empty inline block. Once they and the strings are drawn, let the
-  // paused animations run, then clear the classes and the pen.
-  const pen = card.querySelector<SVGSVGElement>('.pen')!;
-  const writeName = () => {
-    const name = card.querySelector<HTMLElement>('.namesake')!;
-    const e = card.querySelector('.evidence')!.getBoundingClientRect();
-    const probe = document.createElement('span');
-    probe.style.cssText = 'display:inline-block;width:0;height:0';
-    name.append(probe);
-    const base = probe.getBoundingClientRect().top - e.top;
-    probe.remove();
-    const range = document.createRange(), walker = document.createTreeWalker(name, NodeFilter.SHOW_TEXT);
-    let k = 0, out = '';
-    while (walker.nextNode()) {
-      const t = walker.currentNode as Text, cs = getComputedStyle(t.parentElement!), size = parseFloat(cs.fontSize);
-      [...t.data].forEach((ch, i) => {
-        if (!ch.trim()) return;
-        range.setStart(t, i); range.setEnd(t, i + 1);
-        const x = range.getBoundingClientRect().left - e.left;
-        out += `<text x="${x}" y="${base}" font-size="${size}" style="--k:${k++};--len:${size * 6}px;color:${cs.color}">${ch}</text>`;
-      });
-    }
-    pen.innerHTML = out;
-  };
+  // Booking reveal: once the strings are drawn, let the paused animations run, then clear the classes
+  // when the last of them, the signature, is written (1.8 s in, plus its own data-end).
+  const signed = 1800 + Number(card.querySelector<SVGElement>('.signature')!.dataset.end) + 150;
   if (card.classList.contains('booking')) {
     document.fonts.ready.then(() => requestAnimationFrame(() => {
-      writeName();
       card.classList.add('rolling');
       setTimeout(() => {
-        card.classList.remove('booking', 'rolling'); pen.innerHTML = '';
+        card.classList.remove('booking', 'rolling');
         card.dispatchEvent(new Event('booked')); // the opening paragraph types next (see below)
-      }, 3150);
+      }, Math.max(3150, signed));
     }));
   }
 
@@ -339,10 +311,12 @@ let fileCount = 0;
   }
   .print img, .photo { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; filter: sepia(0.12) saturate(0.92); }
   .photo { background: var(--paper); }
-  /* The name set like the B.C.A. mark: the initials in ink, the rest quieter, and the mark's red dots. */
-  .namesake { width: max-content; margin: 22px auto 0; font: 17px/1 var(--deco); letter-spacing: 0.02em; color: var(--muted); }
-  .namesake b { font-weight: 400; font-size: 1.5em; color: var(--ink); }
-  .namesake i { font-style: normal; font-size: 1.5em; color: var(--accent); }
+  /* The signature, in my own hand (see Signature.astro): pen strokes in the theme's ink, with the B.C.A.
+     mark's red dots. */
+  .namesake { margin: 18px 0 0; }
+  .namesake :global(.signature) { display: block; width: 230px; height: auto; margin-inline: calc(50% - 115px); overflow: visible; }
+  .namesake :global(path) { fill: none; stroke: var(--ink); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+  .namesake :global(.dot) { fill: var(--accent); }
   dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; align-items: baseline; }
   dd { margin: 0; }
   @media (max-width: 480px) { .card { grid-template-columns: 1fr; } .evidence { margin-inline: auto; } }
@@ -350,10 +324,10 @@ let fileCount = 0;
   /* Booking: the portrait comes out of a Polaroid camera. The blank print slides out of a slot at its top
      edge (0 to 0.7 s), tilts as it is laid on the board, and the tape presses it down (1.1 s). The picture
      comes up in black and white while it ejects, holds, and the color comes in once it is taped (1.2 s
-     to 1.9 s). The whole reveal takes about 3 seconds. Then the pins go in, the red strings run out to each fact, and the name is written in pen,
-     letter by letter, before the ink fills in. The inline script adds .booking, which holds every
-     animation on its first frame; the module script draws the strings and the pen letters, then adds
-     .rolling to play them. Reduced motion never gets .booking. */
+     to 1.9 s). Then the pins go in, the red strings run out to each fact, and the name is signed in pen,
+     stroke by stroke, by about 5 seconds. The inline script adds .booking, which holds every animation
+     on its first frame; the module script draws the strings, then adds .rolling to play them. Reduced
+     motion never gets .booking. */
   .booking:not(.rolling) :global(*), .booking:not(.rolling) .print::before { animation-play-state: paused !important; }
   /* The slot: the print moves down by the same share that its clip opens, so its visible top edge stays
      put. Linear, like a camera's motor. */
@@ -379,18 +353,12 @@ let fileCount = 0;
   @keyframes pin-in { from { opacity: 0; transform: scale(2.2); } 70% { transform: scale(0.9); } }
   .booking dl > * { animation: fact-in 260ms ease-out calc(1750ms + var(--i) * 120ms) backwards; }
   @keyframes fact-in { from { opacity: 0; transform: translateX(-6px); } }
-  /* The signature: each letter's outline is traced in pen (45 ms apart, from 1.8 s), then the name's
-     ink fades in as the pen lines fade out. */
-  .pen { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; font-family: var(--deco); }
-  .pen :global(text) {
-    fill: none; stroke: currentColor; stroke-width: 0.8; stroke-linejoin: round; stroke-dasharray: var(--len);
-    animation: trace 280ms ease-in-out calc(1800ms + var(--k) * 45ms) backwards;
-  }
-  @keyframes trace { from { stroke-dashoffset: var(--len); } }
-  .booking .pen { animation: fade 300ms 2800ms forwards; }
-  @keyframes fade { to { opacity: 0; } }
-  .booking .namesake { animation: ink 300ms ease 2750ms backwards; }
-  @keyframes ink { from { opacity: 0; } }
+  /* The signature is written stroke by stroke from 1.8 s, at the pen's own pace (each stroke's --t and
+     --d come from Signature.astro). Linear, so joined strokes flow into each other; the dots tap in. */
+  .booking .namesake :global(path) { stroke-dasharray: 1; animation: write var(--d) linear calc(1800ms + var(--t)) backwards; }
+  @keyframes write { from { stroke-dashoffset: 1; } }
+  .booking .namesake :global(.dot) { transform-box: fill-box; transform-origin: center; animation: tap 160ms ease-out calc(1800ms + var(--t)) backwards; }
+  @keyframes tap { from { opacity: 0; transform: scale(2); } }
 
   .prose { margin-top: 40px; font-size: 18px; }
   .prose :global(h2) { font-size: 24px; margin-top: 40px; }

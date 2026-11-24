@@ -9,9 +9,8 @@ const years = [...new Set(posts.map((p) => p.data.date.getFullYear()))];
 ---
 <Base title="Writing" description="Essays and notes by Bill C. Alcantara, an AI engineer in Manila.">
   <header class="page-head">
-    <p class="kicker">// Writing</p>
+    <p class="kicker">Writing</p>
     <h1>Things I think about.</h1>
-    <p class="page-desc">Essays and notes, on work and on what comes after it.</p>
   </header>
   {posts.length === 0 && <p class="meta">No posts yet. The first case notes are on their way.</p>}
   {years.map((y) => (

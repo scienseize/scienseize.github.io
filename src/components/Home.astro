@@ -14,12 +14,8 @@ const show = (s: string) => !section || section === s;
 const cap = <T,>(list: T[]) => (section ? list : list.slice(0, 6));
 const base = section ? `/${section}/` : '/'; // where a closed project sheet returns to
 const pageTitle = { projects: 'Projects', library: 'Library', photos: 'Photos' };
-// One line under the heading of each section page, as the Writing and About pages have.
-const pageHead = {
-  projects: { headline: 'Things I built.', desc: 'AI applications, research, and hackathon entries.' },
-  library: { headline: 'Things I read.', desc: 'The books, manga and manhwa on my shelf, each with a short plot.' },
-  photos: { headline: 'Places I showed up.', desc: 'Competitions, hackathons and events, as I saw them.' },
-};
+// The headline on each section page, under its label.
+const pageHead = { projects: 'Things I built.', library: 'Things I read.', photos: 'Places I showed up.' };
 
 const posts = (await getCollection('writing', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -49,9 +45,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 ---
 <div data-base={base} data-page={section ? pageTitle[section] : ''} hidden></div>
 {section && <header class="page-head">
-  <p class="kicker">// {pageTitle[section]}</p>
-  <h1>{pageHead[section].headline}{project && <span class="sr">: {project}</span>}</h1>
-  <p class="page-desc">{pageHead[section].desc}</p>
+  <p class="kicker">{pageTitle[section]}</p>
+  <h1>{pageHead[section]}{project && <span class="sr">: {project}</span>}</h1>
 </header>}
 {!section && <section class="intro">
   <TrainBanner />

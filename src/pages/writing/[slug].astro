@@ -16,7 +16,7 @@ const day = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 
 ---
 <Base title={post.data.title} description={post.data.description} published={post.data.date}>
   <!-- A post is set as a newspaper article: a nameplate strip, the headline and deck, a byline
-       between rules, then the story in Literata with a drop cap and an end mark. -->
+       between rules, then the story in Lora, as on Substack, with a drop cap and an end mark. -->
   <article class="paper">
     <header>
       <div class="strip">
@@ -44,30 +44,33 @@ const day = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 
   .strip a:hover { color: var(--accent); }
   @media (max-width: 420px) { .strip span { display: none; } }
 
-  h1 { margin: 28px 0 0; font: 700 clamp(34px, 8vw, 48px)/1.08 var(--serif); letter-spacing: -0.015em; text-wrap: balance; }
-  .deck { margin: 14px 0 0; font: italic 400 clamp(18px, 4.5vw, 21px)/1.45 var(--serif); color: var(--muted); text-wrap: pretty; }
+  h1 { margin: 28px 0 0; font: 600 clamp(34px, 8vw, 46px)/1.15 var(--article); letter-spacing: -0.01em; text-wrap: balance; }
+  .deck { margin: 14px 0 0; font: 400 clamp(18px, 4.5vw, 21px)/1.45 var(--article); color: var(--muted); text-wrap: pretty; }
   .byline {
     margin: 22px 0 32px; padding: 8px 0; border-block: 1px solid var(--line);
     font: 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
   }
 
-  .prose { font: 18px/1.75 var(--serif); text-wrap: pretty; }
+  .prose { font: 18px/1.6 var(--article); text-wrap: pretty; }
+  /* Bold and italics in the Markdown read as plain text. */
+  .prose :global(:is(strong, b)) { font-weight: inherit; }
+  .prose :global(:is(em, i)) { font-style: normal; }
   .prose :global(p) { margin: 0 0 1.1em; }
   /* The drop cap, three lines deep, on the story's first paragraph. */
   .prose > :global(p:first-child::first-letter) {
-    float: left; margin: 0.08em 0.1em 0 0; font: 700 4.1em/0.82 var(--serif); color: var(--accent);
+    float: left; margin: 0.08em 0.1em 0 0; font: 400 4.1em/0.82 var(--article); color: var(--accent);
   }
   /* The end mark, as a newspaper closes a story. */
   .prose > :global(p:last-child::after) { content: '\25A0'; margin-left: 0.4em; font-size: 0.7em; color: var(--accent); }
   .prose :global(h2) {
     margin: 2em 0 0.6em; padding-top: 10px; border-top: 1px solid var(--ink);
-    font: 700 13px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; text-align: left;
+    font: 500 13px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; text-align: left;
   }
   .prose :global(hr) { width: 60px; margin: 2em auto; border: 0; border-top: 1px solid var(--muted); }
   /* Block quotes become pull quotes between rules. */
   .prose :global(blockquote) {
     margin: 1.6em 0; padding: 14px 0; border-block: 2px solid var(--ink);
-    font: italic 500 1.2em/1.45 var(--serif); text-align: left;
+    font: 400 1.2em/1.45 var(--article); text-align: left;
   }
   .prose :global(blockquote p) { margin: 0; }
   .prose :global(code) { font: 0.85em var(--mono); background: var(--paper); padding: 1px 5px; border-radius: 3px; }
