@@ -63,7 +63,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <p>
     None of it is polished to a shine. Some of it worked, some of it didn't, and honestly I learned more from the second pile.
   </p>
-  <p>
+  <p class="outro">
     If you want the longer story, there's <a href="/about/">more about me here</a>, and the one-page version is <a href="/resume.pdf">my resume</a>.
     Or just say hi at <a href={`mailto:${site.email}`}>{site.email}</a>, about anything.
   </p>
@@ -483,6 +483,11 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   }
   .intro p a:hover, .intro p a:focus-visible { transform: scale(1.07); color: var(--accent); }
   @media (prefers-reduced-motion: reduce) { .intro p a { transition: color 0.2s; } .intro p a:hover, .intro p a:focus-visible { transform: none; } }
+  /* The last intro paragraph: quieter text, and each link already marked with the red pen (the line other
+     links only draw on hover), like an editor's marks on a case file, so the ways onward stand out. */
+  .intro p.outro { font-size: 0.9em; color: var(--muted); }
+  .intro p.outro a { color: var(--ink); font-weight: 500; text-decoration: none; background-size: 100% 6px; }
+  .intro p.outro a:hover, .intro p.outro a:focus-visible { color: var(--accent); }
 
   .head {
     display: flex; justify-content: space-between; align-items: baseline;
