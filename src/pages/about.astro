@@ -19,7 +19,11 @@ const fileOf = (e: Entry) => {
 let fileCount = 0;
 ---
 <Base title="About" description="About Bill C. Alcantara, an AI engineer in Manila: experience, leadership, awards, and life outside of code.">
-  <h1>About</h1>
+  <header class="page-head">
+    <p class="kicker">// About</p>
+    <h1>Who I am.</h1>
+    <p class="page-desc">Where I have worked, what I have won, and what I do outside of code.</p>
+  </header>
 
   <div class="card">
     <figure class="evidence">
@@ -310,7 +314,6 @@ let fileCount = 0;
 </script>
 
 <style>
-  h1 { margin: 48px 0 32px; font-size: clamp(36px, 8vw, 48px); }
 
   .card { position: relative; display: grid; grid-template-columns: 180px 1fr; gap: 28px; align-items: start; }
   /* Red string and pins (drawn by the script). */

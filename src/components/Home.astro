@@ -14,6 +14,12 @@ const show = (s: string) => !section || section === s;
 const cap = <T,>(list: T[]) => (section ? list : list.slice(0, 6));
 const base = section ? `/${section}/` : '/'; // where a closed project sheet returns to
 const pageTitle = { projects: 'Projects', library: 'Library', photos: 'Photos' };
+// One line under the heading of each section page, as the Writing and About pages have.
+const pageHead = {
+  projects: { headline: 'Things I built.', desc: 'AI applications, research, and hackathon entries.' },
+  library: { headline: 'Things I read.', desc: 'The books, manga and manhwa on my shelf, each with a short plot.' },
+  photos: { headline: 'Places I showed up.', desc: 'Competitions, hackathons and events, as I saw them.' },
+};
 
 const posts = (await getCollection('writing', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -42,7 +48,11 @@ const caption = (b: (typeof library)[number], i: number) =>
 const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear() - year) / 50)).toFixed(2);
 ---
 <div data-base={base} data-page={section ? pageTitle[section] : ''} hidden></div>
-{section && <h1 class="page-title">{pageTitle[section]}{project && <span class="sr">: {project}</span>}</h1>}
+{section && <header class="page-head">
+  <p class="kicker">// {pageTitle[section]}</p>
+  <h1>{pageHead[section].headline}{project && <span class="sr">: {project}</span>}</h1>
+  <p class="page-desc">{pageHead[section].desc}</p>
+</header>}
 {!section && <section class="intro">
   <TrainBanner />
   <!-- The real heading, for search engines and screen readers: name and role, in one clean line. The
@@ -435,8 +445,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   section { margin-top: 72px; }
   /* A section page: its own heading, as on the Writing page, then the section close under it. */
-  .page-title { margin: 48px 0 0; font-size: 40px; }
-  .page-title + section { margin-top: 32px; }
+  .page-head + section { margin-top: 0; }
 
   /* The Library page: the shelf as a logged list, one item per row, as on nikospasion.com's library.
      Each cover is a small print, like the Recognition thumbnails on the About page. */
