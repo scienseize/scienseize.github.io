@@ -221,7 +221,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   // Tagline (home page only): every few seconds, take the next phrase from a shuffled deck and scramble into it, in a
   // new font and color (the CSS sets each [data-look]). Half a beat later, the heading greets in another
-  // language: its letters flip in one by one, like a station departures board. Bill stays.
+  // language, and the new words soak into the page like ink (see soak below). Bill stays.
   const el = document.getElementById('doing');
   if (el) {
     const words: string[] = JSON.parse(el.dataset.words!);
@@ -259,16 +259,20 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       requestAnimationFrame(frame);
     };
 
-    // Split by grapheme, not by code point, so a Thai vowel or tone mark stays on its letter.
-    const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-    const flap = (el: HTMLElement, to: string) => {
-      el.replaceChildren(...[...graphemes.segment(to)].map(({ segment }) =>
-        Object.assign(document.createElement('span'), { className: 'flap', textContent: segment })));
-      if (calm) return;
-      [...el.children].forEach((c, i) => c.animate(
-        [{ transform: 'rotateX(-90deg)', opacity: 0 }, { transform: 'rotateX(20deg)', opacity: 1, offset: 0.7 }, { transform: 'none' }],
-        { duration: 260, delay: i * 40, fill: 'backwards', easing: 'ease-out' },
-      ));
+    // The greeting soaks into the newsprint like fresh ink: the old words fade out, then each part of the
+    // new greeting comes in from a blur and sharpens, the part after Bill a moment later.
+    const soak = async (parts: HTMLElement[], texts: string[]) => {
+      if (calm) return parts.forEach((p, i) => (p.textContent = texts[i]));
+      const fades = parts.map((p) => p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }));
+      await Promise.all(fades.map((f) => f.finished));
+      parts.forEach((p, i) => {
+        p.textContent = texts[i];
+        p.animate(
+          [{ opacity: 0, filter: 'blur(6px)' }, { opacity: 0.6, filter: 'blur(1.5px)', offset: 0.5 }, { opacity: 1, filter: 'none' }],
+          { duration: 800, delay: i * 120, easing: 'ease-out', fill: 'backwards' },
+        );
+      });
+      fades.forEach((f) => f.cancel());
     };
 
     // Each line changes every 3.5 s; they take turns, so the two animations never run at once.
@@ -281,8 +285,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       } else {
         const greeting = nextHello();
         hello.lang = greeting.lang;
-        flap(pre, greeting.pre);
-        flap(post, greeting.post);
+        soak([pre, post], [greeting.pre, greeting.post]);
       }
     }, 1750);
   }
@@ -469,10 +472,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   .intro { margin-top: 48px; }
   /* Always one line, so the page under it never jumps. A long greeting that runs past the edge is clipped, not wrapped. */
-  .hello { margin: 0; font: 600 clamp(36px, 8vw, 48px)/1.2 var(--serif); white-space: nowrap; overflow-x: clip; }
-  /* One flap per letter (see the script). Each turns down from its top edge. */
-  .hello :global(.flap) { display: inline-block; white-space: pre; transform-origin: 50% 0; }
-  /* The name: the B from the logo (Limelight, in ink), then "ill" in the accent. */
+  .hello { margin: 0; font: 600 clamp(36px, 8vw, 48px)/1.2 var(--serif); white-space: nowrap; overflow-x: clip; }  /* The name: the B from the logo (Limelight, in ink), then "ill" in the accent. */
   .name { color: var(--accent); }
   .name .b { font-family: var(--deco); font-weight: 400; color: var(--ink); }
   .tagline { font: 20px var(--serif); margin: 4px 0 22px; color: var(--muted); }
