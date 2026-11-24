@@ -41,6 +41,12 @@ const caption = (b: (typeof library)[number], i: number) =>
   `Item ${String(i + 1).padStart(2, '0')} · ${b.title} — ${b.author} · ${b.kind}, ${b.year}`;
 // Wear grows with age: 0 for this year's books, 1 for 50 years or older.
 const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear() - year) / 50)).toFixed(2);
+// The revolving bookcase: each spine takes a slice of the ring as wide as the spine (books 36, manga and
+// manhwa 30, 2 between), so --ring, the sum, sets the radius. --a is the angle of each spine's centre.
+const thick = (b: (typeof library)[number]) => (b.kind === 'book' ? 36 : 30);
+const ringLength = library.reduce((sum, b) => sum + thick(b) + 2, 0);
+let run = 0;
+const angles = library.map((b) => { const a = ((run + thick(b) / 2) / ringLength) * 360; run += thick(b) + 2; return a.toFixed(2); });
 ---
 <div data-base={base} data-page={section ? pageTitle[section] : ''} hidden></div>
 {section && <header class="page-head">
@@ -74,17 +80,31 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   <div class="casefile">
     <span class="file-tab" aria-hidden="true">Case file · Reading</span>
     <span class="file-stamp" aria-hidden="true">Evidence</span>
-    <div class="shelf" role="group" aria-label="Books, manga and manhwa">
-      {library.map((b, i) => (
-        <button type="button" class="book" data-kind={b.kind} aria-pressed={i === 0 ? 'true' : 'false'} aria-label={b.title}
-          data-caption={caption(b, i)} style={`--spine:${b.color};--ink:${b.ink};--wear:${wear(b.year)}`}>
-          <span class="spine" aria-hidden="true"><span class="t">{b.title}</span><span class="a">{initials(b.author)}</span></span>
-          <img class="cover" src={b.cover} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
-          <span class="wear" aria-hidden="true"></span><span class="foxing" aria-hidden="true"></span><span class="stain" aria-hidden="true"></span>
-        </button>
-      ))}
+    <div class="bookcase" role="group" aria-label="Books, manga and manhwa">
+      <div class="stage">
+        <div class="case" style={`--ring:${ringLength}`}>
+          <span class="core" aria-hidden="true"></span>
+          <span class="board top" aria-hidden="true"></span>
+          <span class="board base" aria-hidden="true"></span>
+          {library.map((b, i) => (
+            <button type="button" class="book" data-kind={b.kind} aria-pressed="false" aria-label={b.title}
+              data-caption={caption(b, i)} style={`--spine:${b.color};--ink:${b.ink};--wear:${wear(b.year)};--a:${angles[i]}deg`}>
+              <span class="tome">
+                <span class="spine" aria-hidden="true">
+                  <span class="t">{b.title}</span><span class="a">{initials(b.author)}</span>
+                  <span class="wear"></span><span class="foxing"></span><span class="stain"></span>
+                </span>
+                <span class="front" aria-hidden="true">
+                  <img class="cover" src={b.cover} alt="" loading="lazy" />
+                  <span class="wear"></span><span class="foxing"></span><span class="stain"></span>
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
-    <p class="log" id="shelf-caption" aria-live="polite">{caption(library[0], 0)}</p>
+    <p class="log" id="shelf-caption" aria-live="polite">{library.length} items on file. Turn the case and pull one out.</p>
   </div>
 </section>}
 
@@ -263,22 +283,97 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     }, 3500);
   }
 
-  // Library: each book learns its cover's shape, so the open book is exactly as wide as the whole cover.
+  // Library: each book learns its cover's shape, so the pulled-out book shows the whole cover.
   document.querySelectorAll<HTMLImageElement>('.book .cover').forEach((img) => {
-    const fit = () => img.parentElement!.style.setProperty('--r', String(img.naturalWidth / img.naturalHeight));
+    const fit = () => img.closest<HTMLElement>('.book')!.style.setProperty('--cover', String(img.naturalWidth / img.naturalHeight));
     if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once: true });
   });
 
-  // Library: clicking a spine opens that book and closes the one that was open.
-  const shelfCaption = document.getElementById('shelf-caption')!;
-  document.querySelectorAll<HTMLButtonElement>('.book').forEach((book) =>
-    book.addEventListener('click', () => {
-      document.querySelectorAll('.book[aria-pressed="true"]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-      book.setAttribute('aria-pressed', 'true');
-      shelfCaption.textContent = book.dataset.caption!;
-      book.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: calm ? 'auto' : 'smooth' });
-    }),
-  );
+  // Library: the revolving bookcase. It turns slowly on its own, and stops while the pointer is over it,
+  // a spine has keyboard focus, or a book is out. A drag turns it, with a little spin left over on release.
+  // Clicking a spine turns that book to the front and pulls it out to show its cover; a click anywhere on
+  // the case, or Escape, puts it back. Everything runs in one frame loop, and only while the case is on screen.
+  const bookcase = document.querySelector<HTMLElement>('.bookcase');
+  if (bookcase) {
+    const turntable = bookcase.querySelector<HTMLElement>('.case')!;
+    const books = [...bookcase.querySelectorAll<HTMLButtonElement>('.book')];
+    const log = document.getElementById('shelf-caption')!;
+    const idle = log.textContent!;
+    const angle = (b: HTMLElement) => parseFloat(b.style.getPropertyValue('--a'));
+    const out = () => books.find((b) => b.getAttribute('aria-pressed') === 'true');
+    let turn = -angle(books[0]), target: number | null = null, spin = 0, hover = false;
+    let drag: { x: number; turn: number; lx: number; lt: number; moved: boolean } | null = null, swallow = false;
+
+    // The nearest way round to bring a book to the front.
+    const front = (b: HTMLElement) => { const t = -angle(b); target = t + 360 * Math.round((turn - t) / 360); spin = 0; };
+    const putBack = () => { out()?.setAttribute('aria-pressed', 'false'); log.textContent = idle; };
+
+    books.forEach((b, i) => {
+      b.addEventListener('click', () => {
+        if (swallow) return; // the end of a drag, not a click
+        const was = b.getAttribute('aria-pressed') === 'true';
+        putBack();
+        if (!was) { b.setAttribute('aria-pressed', 'true'); log.textContent = b.dataset.caption!; front(b); }
+      });
+      b.addEventListener('focus', () => { if (!out()) front(b); });
+      b.addEventListener('keydown', (e) => {
+        const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (step) { e.preventDefault(); books[(i + step + books.length) % books.length].focus(); }
+      });
+    });
+    bookcase.addEventListener('keydown', (e) => { if (e.key === 'Escape') putBack(); });
+    bookcase.addEventListener('click', (e) => { if (!swallow && !(e.target as Element).closest('.book')) putBack(); });
+    bookcase.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') hover = true; });
+    bookcase.addEventListener('pointerleave', () => { hover = false; });
+
+    bookcase.addEventListener('pointerdown', (e) => {
+      if (e.button) return;
+      drag = { x: e.clientX, turn, lx: e.clientX, lt: e.timeStamp, moved: false };
+      spin = 0;
+    });
+    addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) > 6) { drag.moved = true; putBack(); target = null; bookcase.classList.add('turning'); }
+      if (!drag.moved) return;
+      turn = drag.turn + dx * 0.5;
+      const dt = (e.timeStamp - drag.lt) / 1000;
+      if (dt > 0) spin = 0.7 * spin + 0.3 * (((e.clientX - drag.lx) * 0.5) / dt);
+      drag.lx = e.clientX; drag.lt = e.timeStamp;
+    });
+    const release = (e: PointerEvent) => {
+      if (!drag) return;
+      if (drag.moved) {
+        swallow = true; setTimeout(() => (swallow = false));
+        if (e.timeStamp - drag.lt > 100 || calm) spin = 0; // held still before letting go: no spin
+        spin = Math.max(-720, Math.min(720, spin));
+      }
+      drag = null; bookcase.classList.remove('turning');
+    };
+    addEventListener('pointerup', release);
+    addEventListener('pointercancel', release);
+
+    let seen = false, running = false, last = 0;
+    const frame = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 0.05); last = now;
+      if (!drag) {
+        if (target !== null) {
+          turn = calm ? target : turn + (target - turn) * (1 - Math.exp(-dt * 7));
+          if (Math.abs(target - turn) < 0.05) { turn = target; if (!out()) target = null; }
+        } else if (Math.abs(spin) > 2) {
+          turn += spin * dt; spin *= Math.exp(-dt * 2.5);
+        } else if (!calm && !hover && !bookcase.querySelector(':focus-visible')) {
+          turn += 5 * dt; // one turn every 72 s
+        }
+      }
+      turntable.style.setProperty('--turn', `${turn.toFixed(3)}deg`);
+      if (seen) requestAnimationFrame(frame); else running = false;
+    };
+    new IntersectionObserver(([entry]) => {
+      seen = entry.isIntersecting;
+      if (seen && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+    }).observe(bookcase);
+  }
 
   // Iris: like a silent detective film, a circle opens from the spot that was clicked to reveal
   // the exhibit or photo, and shrinks back to that spot on close. Keyboard and direct links open
@@ -505,8 +600,8 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .blurb { font-size: 15px; margin: 8px 0; }
   .tag .meta { margin: 0; font-size: 12px; }
 
-  /* Library: a manila case file. The books stand on a ruled line like items logged as evidence;
-     the open one shows its cover, and a typed log line names it. Soft, low-contrast paper. */
+  /* Library: a manila case file. The books stand in a revolving bookcase like items logged as evidence;
+     the pulled-out one shows its cover, and a typed log line names it. Soft, low-contrast paper. */
   .casefile {
     --manila: #eadfc4; --manila-ink: #3b352a; --rule: rgb(59 53 42 / 0.45);
     position: relative; margin-top: 30px; padding: 30px 20px 16px; border-radius: 0 6px 6px 6px;
@@ -529,46 +624,99 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     --tilt: -4deg; transform: rotate(var(--tilt)); opacity: 0.7;
   }
   :root[data-theme='dark'] .file-stamp { color: #d65a4f; }
-  /* Books stand on a double rule, like a ledger line. */
-  .shelf {
-    display: flex; gap: 3px; align-items: flex-end; min-height: 240px; padding: 0 2px;
-    border-bottom: 3px double var(--rule); overflow-x: auto; scrollbar-width: none;
-  }
   .log { margin: 12px 0 0; font: 12px var(--mono); letter-spacing: 0.02em; text-align: center; }
 
+  /* The revolving bookcase, seen from a little above. Every size is in --u, so phones scale the whole
+     case at once. --ring (set in the markup) is the ring's length, so the radius is --ring over 2 pi.
+     --turn (set by the script) turns the case; the core, a dark board inside, always faces the viewer,
+     so the gaps between spines and over the short volumes look into the case, not through it. */
+  .bookcase {
+    --u: 1px; position: relative; height: calc(var(--u) * 320); perspective: 1100px; perspective-origin: 50% 0%;
+    touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab;
+  }
+  .bookcase.turning { cursor: grabbing; }
+  .stage {
+    position: absolute; left: 50%; bottom: calc(var(--u) * 40); width: 0; height: calc(var(--u) * 236);
+    transform-style: preserve-3d; transform: rotateX(-6deg);
+  }
+  .case {
+    --r: calc(var(--u) * var(--ring) / 6.2832);
+    position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateY(var(--turn, 0deg));
+  }
+  .core {
+    position: absolute; bottom: 0; left: 0; width: calc(var(--r) * 1.9); margin-left: calc(var(--r) * -0.95); height: 100%;
+    background: linear-gradient(90deg, #1f1810, #3a2c1d 50%, #1f1810);
+    transform: rotateY(calc(var(--turn, 0deg) * -1));
+  }
+  /* The top and the turntable: wooden discs, each with a darker one under it for thickness. */
+  .board {
+    --size: calc(var(--r) * 2 + var(--u) * 22);
+    position: absolute; left: 0; width: var(--size); height: var(--size); margin-left: calc(var(--size) * -0.5);
+    top: calc(var(--size) * -0.5); border-radius: 50%; transform-style: preserve-3d; transform: rotateX(90deg);
+    background:
+      repeating-radial-gradient(circle at 46% 54%, rgb(255 230 190 / 0.07) 0 2px, transparent 2px 7px),
+      radial-gradient(circle, #8a6440, #6b4a2b 70%, #5a3d22);
+  }
+  .board::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%; background: #3b2716;
+    transform: translateZ(calc(var(--u) * -7));
+  }
+  .board.base { --size: calc(var(--r) * 2 + var(--u) * 34); top: calc(100% - var(--size) * 0.5); box-shadow: 0 0 22px 4px rgb(0 0 0 / 0.3); }
+
+  /* A book: placed on the ring, spine out. Its cover stands behind the spine's right edge, turned
+     inward, and only shows once the book is pulled out (.tome slides forward and turns a quarter left
+     about the book's middle). --cw is the cover's width, from its own shape (--cover, set by the script). */
   .book {
-    /* Closed spines shrink when the shelf is narrow, so every book fits on it (down to 15 px each). */
-    flex: 0 1 auto; min-width: 15px; position: relative; width: 36px; --h: 236px; height: var(--h); padding: 0; border: 0; border-radius: 2px 2px 0 0;
-    background: var(--spine); color: var(--ink); cursor: pointer; overflow: hidden;
-    box-shadow: 1px 0 2px rgb(0 0 0 / 0.18);
-    /* Chipped corners grow with wear; the shape is shared by every layer of the book. */
+    --t: 36; --h: 236; --cw: calc(var(--u) * var(--h) * var(--cover, 0.66));
+    position: absolute; bottom: 0; left: 0; width: calc(var(--u) * var(--t)); height: calc(var(--u) * var(--h));
+    margin-left: calc(var(--u) * var(--t) * -0.5); padding: 0; border: 0; background: none; color: var(--ink);
+    transform-style: preserve-3d; transform: rotateY(var(--a)) translateZ(var(--r)); cursor: pointer;
+  }
+  .book[data-kind='manga'], .book[data-kind='manhwa'] { --t: 30; --h: 208; } /* smaller volumes */
+  .bookcase.turning .book { cursor: grabbing; }
+  /* While a book is out, the spines behind it ignore the pointer: browsers hit-test 3D scenes poorly,
+     so a click on the cover could land on a spine behind it. A click anywhere puts the book back. */
+  .case:has(.book[aria-pressed='true']) .book:not([aria-pressed='true']) { pointer-events: none; }
+  .case:has(.book[aria-pressed='true']) { cursor: pointer; }
+  .tome {
+    position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50% calc(var(--cw) * -0.5);
+    transition: transform 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .book[aria-pressed='true'] .tome { transform: translateZ(calc(var(--cw) * 0.5 + var(--u) * 46)) rotateY(-90deg); }
+  .spine, .front {
+    position: absolute; top: 0; height: 100%; overflow: hidden; backface-visibility: hidden;
+    /* Chipped corners grow with wear; spine and cover share the shape. */
     --chip: calc(var(--wear) * 9px);
-    --clip: polygon(0 calc(var(--chip) * 0.5), calc(var(--chip) * 0.7) 0, calc(100% - var(--chip)) 0, 100% calc(var(--chip) * 1.4),
+    clip-path: polygon(0 calc(var(--chip) * 0.5), calc(var(--chip) * 0.7) 0, calc(100% - var(--chip)) 0, 100% calc(var(--chip) * 1.4),
       100% calc(100% - var(--chip) * 0.6), calc(100% - var(--chip) * 0.5) 100%, 0 100%);
-    clip-path: var(--clip);
-    /* Older books yellow a little. Kept gentle so the shelf stays easy to read. */
+  }
+  .spine {
+    left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: calc(var(--u) * 14) 0 calc(var(--u) * 28); background: var(--spine); border-radius: 2px 2px 0 0;
+    /* Older books yellow a little. Kept gentle so the case stays easy to read. */
     filter: sepia(calc(0.08 + var(--wear) * 0.4)) saturate(calc(0.9 - var(--wear) * 0.2));
-    transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  .book[data-kind='manga'], .book[data-kind='manhwa'] { width: 30px; --h: 208px; } /* smaller volumes */
-  /* The open book takes its cover's own shape (--r, width over height, set by the script), so the whole
-     cover shows, never cropped. 0.66 holds until the cover has loaded. */
-  .book[aria-pressed='true'] { width: calc(var(--h) * var(--r, 0.66)); flex-shrink: 0; filter: sepia(calc(var(--wear) * 0.35)); }
-  /* On phones every book is shorter, so the open cover stays whole and all the spines still fit beside it. */
-  @media (max-width: 480px) {
-    .book { min-width: 13px; --h: 168px; }
-    .book:is([data-kind='manga'], [data-kind='manhwa']) { --h: 148px; }
-    .shelf { gap: 2px; min-height: 172px; }
-    .spine .t { font-size: 8px; padding: 5px 1px; }
-    .spine .a { font-size: 7px; }
-  }
-  .book:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   /* Round the spine: light on the left edge, shade on the right. */
-  .book::after {
+  .spine::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(90deg, rgb(255 255 255 / 0.16), transparent 22%, transparent 72%, rgb(0 0 0 / 0.22));
   }
-  .book[aria-pressed='true']::after { background: linear-gradient(90deg, rgb(0 0 0 / 0.12), transparent 5%); }
+  .front {
+    left: 100%; width: var(--cw); transform-origin: 0 50%; transform: rotateY(90deg);
+    background: var(--spine); filter: sepia(calc(var(--wear) * 0.35));
+    opacity: 0; transition: opacity 0.25s 0.1s;
+    box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.5);
+  }
+  .book[aria-pressed='true'] .front { opacity: 1; }
+  .book:focus-visible { outline: none; }
+  .book:focus-visible .spine, .book:focus-visible .front { outline: 2px solid var(--accent); outline-offset: -2px; }
+  /* On phones the whole case is smaller. */
+  @media (max-width: 480px) {
+    .bookcase { --u: 0.74px; }
+    .spine .t { font-size: 8px; padding: 5px 1px; }
+    .spine .a { font-size: 7px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tome, .front { transition: none; } }
 
   /* Wear, scaled by --wear (0 new, 1 for 50 years or more): grain and rubbed edges, then foxing,
      then a tide line and a crease, then a coffee ring. Softer than before, so it reads as age, not noise. */
@@ -594,21 +742,15 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       linear-gradient(118deg, transparent 46%, rgb(255 246 225 / 0.45) 47.5%, rgb(60 38 15 / 0.25) 49%, transparent 50.5%),
       radial-gradient(ellipse 140% 30% at 35% 104%, rgb(150 108 55 / 0.28) 0 60%, rgb(95 58 22 / 0.42) 63%, transparent 67%);
   }
-  .spine {
-    position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: space-between; padding: 14px 0 28px; transition: opacity 0.25s;
-  }
   /* Each title sits on a typed evidence label. */
   .spine .t {
+    position: relative; z-index: 1;
     writing-mode: vertical-rl; font: 500 10px var(--mono); letter-spacing: 0.04em; white-space: nowrap; color: #2a2620;
     max-height: calc(100% - 46px); overflow: hidden; text-overflow: ellipsis;
     padding: 6px 2px; background: #f4eedf; border-radius: 1px; box-shadow: 0 0 0 1px rgb(42 38 32 / 0.25);
   }
-  .spine .a { position: absolute; bottom: 7px; font: 9px var(--mono); opacity: 0.8; }
-  .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; }
-  .book[aria-pressed='true'] .spine { opacity: 0; }
-  .book[aria-pressed='true'] .cover { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .book, .spine, .cover { transition: none; } }
+  .spine .a { position: absolute; z-index: 1; bottom: 7px; font: 9px var(--mono); opacity: 0.8; }
+  .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
   /* Each tagline phrase gets one of these looks at random (see the script). Look 0 is the first one. */
   .doing { font: 0.85em var(--mono); color: var(--accent); --ink-1: #1e4f7a; --ink-2: #3d6b2e; --ink-3: #8a6414; --ink-4: #6d2f6d; --ink-5: #1f6b68; }
