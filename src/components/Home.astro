@@ -251,9 +251,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
           <figcaption><span>Plate I.</span> {p.title}</figcaption>
         </figure>
       )}
-      {p.abstract
-        ? <div class="prose dropcap"><p class="abstract-head">Abstract</p><p>{p.abstract}</p></div>
-        : <div class="prose dropcap"><p.Content /></div>}
+      <div class="prose dropcap"><p.Content /></div>
       {p.images.slice(1).map((src, n) => (
         <figure class="plate">
           <img src={src} alt={`${p.title}, plate ${roman(n + 2)}`} loading="lazy" />
@@ -1054,11 +1052,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .prose :global(p) { margin: 0; }
   .prose :global(p + p) { text-indent: 1.6em; }
   .prose :global(code) { font: 0.85em var(--mono); background: rgb(42 38 32 / 0.07); padding: 1px 4px; border-radius: 2px; }
-  .dropcap :global(p:not(.abstract-head):first-of-type::first-letter),
-  .dropcap .abstract-head + :global(p::first-letter) {
+  .dropcap :global(p:first-of-type::first-letter) {
     float: left; margin: 6px 10px 0 0; font: 3.6em/0.8 var(--deco); color: #9e2b25;
   }
-  .abstract-head { margin-bottom: 14px !important; text-align: center; font: 600 12px var(--serif); letter-spacing: 0.3em; text-transform: uppercase; color: #6b5f4b; }
 
   /* Particulars, set like a table of contents with dotted leaders. */
   .particulars { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgb(42 38 32 / 0.25); }
