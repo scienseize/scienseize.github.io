@@ -92,6 +92,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       ))}
     </div>
     <p class="log" id="shelf-caption" aria-live="polite">{caption(library[0], 0)}</p>
+    <p class="hint" id="shelf-hint" aria-hidden="true">&larr; swipe the shelf &rarr;</p>
   </div>
 </section>}
 
@@ -290,39 +291,109 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     }, 1750);
   }
 
-  // Library: each book learns its cover's shape, so the open book is exactly as wide as the whole cover.
-  document.querySelectorAll<HTMLImageElement>('.book .cover').forEach((img) => {
-    const fit = () => img.closest<HTMLElement>('.book')!.style.setProperty('--r', String(img.naturalWidth / img.naturalHeight));
-    if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once: true });
-  });
+  // Library: the shelf scrolls sideways, like a coverflow. pos is a place on the shelf (0 is the first
+  // book, and it can fall between two books). Each book opens by how near it is to pos, so a swipe,
+  // a drag or a sideways scroll turns one book out as the next one turns in. The book nearest pos is
+  // the open one: it is centred, pressed and named in the log line.
+  const shelf = document.querySelector<HTMLElement>('.shelf');
+  if (shelf) {
+    const books = [...shelf.querySelectorAll<HTMLButtonElement>('.book')];
+    const shelfCaption = document.getElementById('shelf-caption')!;
+    const hint = document.getElementById('shelf-hint');
+    const last = books.length - 1, step = 40; // px of scroll or drag per book
+    const clamp = (x: number) => Math.min(last, Math.max(0, x));
+    let pos = 0, target = 0, frame = 0, held = false, shown = -1;
+    const draw = () => {
+      books.forEach((b, i) => {
+        const near = Math.max(0, 1 - Math.abs(i - pos));
+        b.style.setProperty('--o', (near * near * (3 - 2 * near)).toFixed(4)); // smoothstep
+      });
+      // Centre the point between the two nearest books, then slide every book by the same amount.
+      const i = Math.floor(pos), mid = (b: HTMLElement) => b.offsetLeft + b.offsetWidth / 2;
+      const at = i < last ? mid(books[i]) + (mid(books[i + 1]) - mid(books[i])) * (pos - i) : mid(books[last]);
+      const shift = `translateX(${(shelf.clientWidth / 2 - at).toFixed(1)}px)`;
+      books.forEach((b) => (b.style.transform = shift));
+      const n = Math.round(pos);
+      if (n === shown) return;
+      shown = n;
+      books.forEach((b, k) => b.setAttribute('aria-pressed', String(k === n)));
+      shelfCaption.textContent = books[n].dataset.caption!;
+    };
+    const tick = () => {
+      if (!held) pos += calm ? target - pos : (target - pos) * 0.16;
+      if (Math.abs(target - pos) < 0.001) pos = target;
+      draw();
+      frame = held || pos !== target ? requestAnimationFrame(tick) : 0;
+    };
+    const go = (to: number) => {
+      target = clamp(Math.round(to));
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    const moved = () => hint?.classList.add('gone');
 
-  // Library: each book learns how thick a closed spine is (--t), so it turns as a box of the right depth.
-  // On a narrow shelf the spines shrink, and they widen or narrow as a book opens or closes, so the
-  // narrowest closed spine of each size class is measured again whenever a book changes width.
-  const shelfBooks = [...document.querySelectorAll<HTMLButtonElement>('.book')];
-  const thickness = () => {
-    const closed = (isBook: boolean) => Math.min(...shelfBooks
-      .filter((x) => x.getAttribute('aria-pressed') !== 'true' && (x.dataset.kind === 'book') === isBook)
-      .map((x) => x.getBoundingClientRect().width));
-    const book = closed(true), volume = closed(false);
-    shelfBooks.forEach((b) => b.style.setProperty('--t', `${b.dataset.kind === 'book' ? book : volume}px`));
-  };
-  const watch = new ResizeObserver(thickness);
-  shelfBooks.forEach((b) => watch.observe(b));
+    // A sideways scroll (trackpad, or shift and the wheel) moves the shelf; it settles on a book when it stops.
+    let settle = 0;
+    shelf.addEventListener('wheel', (e) => {
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.shiftKey ? e.deltaY : 0;
+      if (!dx) return;
+      e.preventDefault();
+      pos = target = clamp(pos + dx / step);
+      draw(); moved();
+      clearTimeout(settle);
+      settle = setTimeout(() => go(pos), 90);
+    }, { passive: false });
 
-  // Library: clicking a spine opens that book and closes the one that was open. Clicking the open cover
-  // closes it, and the log line then counts the shelf.
-  const shelfCaption = document.getElementById('shelf-caption')!;
-  document.querySelectorAll<HTMLButtonElement>('.book').forEach((book) =>
-    book.addEventListener('click', () => {
-      const wasOpen = book.getAttribute('aria-pressed') === 'true';
-      document.querySelectorAll('.book[aria-pressed="true"]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-      if (wasOpen) { shelfCaption.textContent = `${shelfBooks.length} items on file.`; return; }
-      book.setAttribute('aria-pressed', 'true');
-      shelfCaption.textContent = book.dataset.caption!;
-      book.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: calm ? 'auto' : 'smooth' });
-    }),
-  );
+    // A drag or a swipe moves the shelf with the pointer and throws it on release. Up and down still scroll the page.
+    let down = false, dragged = false, startX = 0, startPos = 0, lastX = 0, lastT = 0, speed = 0;
+    shelf.addEventListener('pointerdown', (e) => {
+      if (e.button) return;
+      down = true; dragged = false; startX = lastX = e.clientX; lastT = e.timeStamp; startPos = pos; speed = 0;
+    });
+    shelf.addEventListener('pointermove', (e) => {
+      if (!down) return;
+      const dx = e.clientX - startX;
+      if (!dragged) {
+        if (Math.abs(dx) < 6) return;
+        dragged = held = true; moved();
+        shelf.setPointerCapture(e.pointerId);
+        shelf.classList.add('dragging');
+        if (!frame) frame = requestAnimationFrame(tick);
+      }
+      pos = clamp(startPos - dx / step);
+      speed = (e.clientX - lastX) / Math.max(1, e.timeStamp - lastT); lastX = e.clientX; lastT = e.timeStamp;
+    });
+    const release = () => {
+      if (!down) return;
+      down = false;
+      if (!dragged) return;
+      held = false;
+      shelf.classList.remove('dragging');
+      go(pos - (speed * 260) / step);
+    };
+    shelf.addEventListener('pointerup', release);
+    shelf.addEventListener('pointercancel', release);
+
+    // A click on a spine (not the end of a drag), or keyboard focus, brings that book round. Arrow keys step.
+    books.forEach((b, i) => {
+      b.addEventListener('click', (e) => { if (!(e.detail && dragged)) { go(i); moved(); } });
+      b.addEventListener('focus', () => { if (b.matches(':focus-visible')) go(i); });
+    });
+    shelf.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      books[clamp(target + d)].focus();
+    });
+
+    // Each book learns its cover's shape (--r), so the open book is exactly as wide as the whole cover.
+    books.forEach((b) => {
+      const img = b.querySelector<HTMLImageElement>('.cover')!;
+      const fit = () => { b.style.setProperty('--r', String(img.naturalWidth / img.naturalHeight)); draw(); };
+      if (img.complete && img.naturalWidth) fit(); else img.addEventListener('load', fit, { once: true });
+    });
+    addEventListener('resize', draw);
+    draw();
+  }
 
   // Iris: like a silent detective film, a circle opens from the spot that was clicked to reveal
   // the exhibit or photo, and shrinks back to that spot on close. Keyboard and direct links open
@@ -577,45 +648,50 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   }
   :root[data-theme='dark'] .file-stamp { color: #d65a4f; }
   /* Books stand on a double rule, like a ledger line. The shelf gives the books depth (perspective), and a
-     little room on top, so a book can turn toward the reader without being cut off. */
+     little room on top, so a book can turn toward the reader without being cut off. The script slides
+     the row so the open book sits in the middle; the ends of the shelf fade out. Sideways drags belong
+     to the shelf, up and down to the page. */
   .shelf {
-    display: flex; gap: 3px; align-items: flex-end; min-height: 240px; padding: 14px 2px 0;
-    border-bottom: 3px double var(--rule); overflow-x: auto; scrollbar-width: none;
+    position: relative; display: flex; gap: 3px; align-items: flex-end; min-height: 240px; padding-top: 14px;
+    border-bottom: 3px double var(--rule); overflow: hidden; touch-action: pan-y; user-select: none; cursor: grab;
     perspective: 1200px; perspective-origin: 50% 100%;
+    mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
   }
+  .shelf.dragging { cursor: grabbing; }
   .log { margin: 12px 0 0; font: 12px var(--mono); letter-spacing: 0.02em; text-align: center; }
+  .hint { margin: 4px 0 0; font: 11px var(--mono); letter-spacing: 0.1em; text-align: center; opacity: 0.55; transition: opacity 0.6s; }
+  .hint.gone { opacity: 0; }
 
   /* A book is a slot on the shelf with a box inside (.tome): the spine faces out, and the cover stands
      behind the spine's right edge, turned inward. Opening a book widens its slot to the cover's width
      while the box slides out and turns a quarter left, so the cover comes round to face the reader.
-     --t is the spine's thickness (set by the script), --cw the cover's width. */
+     --t is the spine's thickness, --cw the cover's width, and --o (set by the script, 0 to 1) how far the
+     book has turned. The slot is always exactly as wide as the turning box seen from the front. */
   .book {
-    /* Closed spines shrink when the shelf is narrow, so every book fits on it (down to 15 px each). */
-    flex: 0 1 auto; min-width: 15px; position: relative; width: 36px; --h: 236px; height: var(--h); padding: 0; border: 0;
+    flex: none; position: relative; --t: 36px; --h: 236px; height: var(--h); padding: 0; border: 0;
     background: none; color: var(--ink); cursor: pointer; transform-style: preserve-3d;
+    /* The open book takes its cover's own shape (--r, width over height, set by the script), so the whole
+       cover shows, never cropped. 0.66 holds until the cover has loaded. */
     --cw: calc(var(--h) * var(--r, 0.66));
-    transition: width 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+    --a: calc(var(--o, 0) * 90deg);
+    --w: calc(var(--t) * cos(var(--a)) + var(--cw) * sin(var(--a)));
+    width: var(--w);
   }
-  .book[data-kind='manga'], .book[data-kind='manhwa'] { width: 30px; --h: 208px; } /* smaller volumes */
-  /* The open book takes its cover's own shape (--r, width over height, set by the script), so the whole
-     cover shows, never cropped. 0.66 holds until the cover has loaded. */
-  .book[aria-pressed='true'] { width: var(--cw); flex-shrink: 0; }
-  /* On phones every book is shorter, so the open cover stays whole and all the spines still fit beside it. */
+  .book[data-kind='manga'], .book[data-kind='manhwa'] { --t: 30px; --h: 208px; } /* smaller volumes */
+  /* On phones every book is shorter, so the open cover and a few spines fit on the screen. */
   @media (max-width: 480px) {
-    .book { min-width: 13px; --h: 168px; }
+    .book { --h: 168px; }
     .book:is([data-kind='manga'], [data-kind='manhwa']) { --h: 148px; }
     .shelf { gap: 2px; min-height: 172px; }
     .spine .t { font-size: 8px; padding: 5px 1px; }
     .spine .a { font-size: 7px; }
   }
+  /* The box turns about its own centre, stays centred in its slot, and comes forward as it turns, so the
+     open cover ends flat on the shelf's plane. */
   .tome {
-    position: absolute; left: 0; bottom: 0; width: var(--t, 100%); height: 100%;
+    position: absolute; left: 0; bottom: 0; width: var(--t); height: 100%;
     transform-style: preserve-3d; transform-origin: 50% 50% calc(var(--cw) * -0.5);
-    transition: transform 0.7s cubic-bezier(0.32, 0.72, 0, 1);
-  }
-  /* Open: slide out and turn, ending with the cover flat on the shelf's plane, centred in its slot. */
-  .book[aria-pressed='true'] .tome {
-    transform: translateX(calc((var(--cw) - var(--t, 36px)) / 2)) translateZ(calc((var(--cw) - var(--t, 36px)) / 2)) rotateY(-90deg);
+    transform: translateX(calc((var(--w) - var(--t)) / 2)) translateZ(calc((var(--cw) - var(--t)) / 2 * var(--o, 0))) rotateY(calc(var(--a) * -1));
   }
   .spine, .front {
     position: absolute; top: 0; height: 100%; overflow: hidden; backface-visibility: hidden;
@@ -627,10 +703,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .front {
     left: 100%; width: var(--cw); transform-origin: 0 50%; transform: rotateY(90deg);
     background: var(--spine); filter: sepia(calc(var(--wear) * 0.35));
-    /* Hidden on the shelf; it shows as it turns out, and hides only once it has turned back in. */
-    opacity: 0; transition: opacity 0.2s 0.45s;
+    /* Hidden on the shelf; it shows as soon as the book starts to turn. */
+    opacity: calc(var(--o, 0) * 10);
   }
-  .book[aria-pressed='true'] .front { opacity: 1; transition: opacity 0.25s 0.1s; }
   .book:focus-visible { outline: none; }
   .book:focus-visible :is(.spine, .front) { outline: 2px solid var(--accent); outline-offset: -2px; }
   /* Round the spine: light on the left edge, shade on the right. */
@@ -678,7 +753,6 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   }
   .spine .a { position: absolute; z-index: 1; bottom: 7px; font: 9px var(--mono); opacity: 0.8; }
   .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  @media (prefers-reduced-motion: reduce) { .book, .tome, .front { transition: none; } }
 
   /* Each tagline phrase gets one of these looks at random (see the script). Look 0 is the first one. */
   .doing { font: 0.85em var(--mono); color: var(--accent); --ink-1: #1e4f7a; --ink-2: #3d6b2e; --ink-3: #8a6414; --ink-4: #6d2f6d; --ink-5: #1f6b68; }
