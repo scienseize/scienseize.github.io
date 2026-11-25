@@ -1,8 +1,9 @@
 ---
+import { readFileSync } from 'node:fs';
 import { getCollection, render } from 'astro:content';
 import PostList from './PostList.astro';
 import TrainBanner from './TrainBanner.astro';
-import { site, library, photos } from '../site';
+import { site, library, bag, photos } from '../site';
 
 // The home page shows every section, each capped at 6 items with a "View all" link; the shelf is the
 // exception and holds every book. A section page (/projects/, /photos/) passes `section`
@@ -39,6 +40,23 @@ const roman = (n: number) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 
 const initials = (name: string) => name.split(/[\s-]+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const caption = (b: (typeof library)[number], i: number) =>
   `Item ${String(i + 1).padStart(2, '0')} · ${b.title} — ${b.author} · ${b.kind}, ${b.year}`;
+// A bag cutout's size, read from its WebP header, so the page keeps its space before it loads. cwebp writes
+// cutouts with alpha as VP8X (width and height minus one, 24-bit, at bytes 24 and 27); other files get no size.
+const webpSize = (src: string): { width?: number; height?: number } => {
+  const b = readFileSync(`public${src}`);
+  return b.toString('ascii', 12, 16) === 'VP8X' ? { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 } : {};
+};
+// The bag's lots, with each item numbered through all of them and its real height in millimetres (its size
+// is the picture's longest side), so the page can draw every item to one scale.
+let itemNo = 0;
+const lots = bag.map(({ lot, items }) => ({
+  lot,
+  items: items.map((it) => {
+    const dim = webpSize(it.image);
+    const tall = dim.width && dim.height ? (it.size * dim.height) / Math.max(dim.width, dim.height) : it.size;
+    return { ...it, dim, tall: tall.toFixed(1), no: String(++itemNo).padStart(2, '0'), label: it.note ? `${it.name} — ${it.note}` : it.name };
+  }),
+}));
 // Wear grows with age: 0 for this year's books, 1 for 50 years or older.
 const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear() - year) / 50)).toFixed(2);
 ---
@@ -156,6 +174,43 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
         <figcaption class="meta">{ph.caption}</figcaption>
       </figure>
     ))}
+  </div>
+</section>}
+
+{!section && bag.length > 0 && <section id="bag">
+  <div class="head"><h2 class="label">In the Bag</h2></div>
+  <div class="casefile">
+    <span class="file-tab" aria-hidden="true">Case file · Carried</span>
+    <span class="file-stamp" aria-hidden="true">Evidence</span>
+    <!-- The die-cut border, like a Nothing OS Collector sticker: grow the cutout's outline, round its
+         corners (blur, then a sharp alpha ramp), fill it white, and lay the photo on top. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <filter id="sticker" x="-15%" y="-15%" width="130%" height="130%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="5" />
+        <feGaussianBlur stdDeviation="1.5" />
+        <feComponentTransfer result="edge"><feFuncA type="linear" slope="3" intercept="-1" /></feComponentTransfer>
+        <feFlood flood-color="#fff" />
+        <feComposite operator="in" in2="edge" />
+        <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </svg>
+    <div class="lots">
+      {lots.map(({ lot, items }, g) => (
+        <div class="lot" role="group" aria-label={lot}>
+          <p class="lot-name" aria-hidden="true">{letter(g)} · {lot}</p>
+          <div class="stickers">
+            {items.map((it) => (
+              <button type="button" class="sticker" aria-label={it.label} aria-pressed="false"
+                data-caption={`Item ${it.no} · ${it.label}`} style={`--tilt:${it.tilt}deg;--tall:${it.tall}`}>
+                <img src={it.image} alt="" loading="lazy" draggable="false" {...it.dim} />
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <p class="scale" aria-hidden="true"><span></span>10 cm · all to scale</p>
+    </div>
+    <p class="log" id="bag-caption" aria-live="polite">Carried daily. Point at an item.</p>
   </div>
 </section>}
 
@@ -394,6 +449,16 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     addEventListener('resize', draw);
     draw();
   }
+
+  // In the bag: pointing at a sticker, focusing it or tapping it lifts it and names it in the log line.
+  // The last one stays named when the pointer leaves.
+  const bagCaption = document.getElementById('bag-caption');
+  const stickers = [...document.querySelectorAll<HTMLButtonElement>('.sticker')];
+  const pick = (s: HTMLButtonElement) => {
+    stickers.forEach((o) => o.setAttribute('aria-pressed', String(o === s)));
+    bagCaption!.textContent = s.dataset.caption!;
+  };
+  stickers.forEach((s) => ['pointerenter', 'focus', 'click'].forEach((ev) => s.addEventListener(ev, () => pick(s))));
 
   // Iris: like a silent detective film, a circle opens from the spot that was clicked to reveal
   // the exhibit or photo, and shrinks back to that spot on close. Keyboard and direct links open
@@ -753,6 +818,40 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   }
   .spine .a { position: absolute; z-index: 1; bottom: 7px; font: 9px var(--mono); opacity: 0.8; }
   .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* In the bag: each item is a die-cut sticker (the #sticker filter draws the white border), stuck on the
+     case file at a slight angle, in lots (Electronics, Pockets...) that sit side by side when they fit.
+     Every item is drawn to one scale: --mm is the pixels for a real millimetre, from the width of the lots
+     (a container), so the laptop's row always fits; --tall is the item's real height in millimetres. Items
+     stand on their lot's line, so their sizes compare. The picked one lifts flat toward the reader and its
+     shadow grows. */
+  .lots {
+    container-type: inline-size; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 20px; padding-top: 6px;
+    --mm: clamp(0.46px, 100cqw / 960, 0.7px);
+  }
+  .lot { flex: 1 1 auto; }
+  /* The lot's name never sets its width (contain), so small lots pack side by side; a long name is cut short. */
+  .lot-name {
+    contain: inline-size; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin: 0 0 2px; padding-bottom: 3px; border-bottom: 1px dashed var(--rule);
+    font: 10px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75;
+  }
+  .stickers { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 2px; }
+  /* A ruler bracket 10 cm long, at the same scale. */
+  .scale { flex-basis: 100%; display: flex; align-items: center; gap: 8px; margin: 0; font: 10px var(--mono); letter-spacing: 0.06em; opacity: 0.7; }
+  .scale span { width: calc(100 * var(--mm)); height: 6px; border: 1px solid currentColor; border-top: 0; }
+  .sticker {
+    position: relative; margin: 0; padding: 5px; border: 0; border-radius: 10px;
+    background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transform: rotate(var(--tilt)); filter: drop-shadow(0 3px 4px rgb(60 40 15 / 0.28));
+    transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.25s;
+  }
+  .sticker img { display: block; width: auto; height: calc(var(--tall) * var(--mm)); filter: url(#sticker); -webkit-user-drag: none; }
+  .sticker:is(:hover, :focus-visible, [aria-pressed='true']) {
+    z-index: 1; transform: rotate(0deg) scale(1.06); filter: drop-shadow(0 10px 12px rgb(60 40 15 / 0.32));
+  }
+  .sticker:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .sticker { transition: none; } }
 
   /* Each tagline phrase gets one of these looks at random (see the script). Look 0 is the first one. */
   .doing { font: 0.85em var(--mono); color: var(--accent); --ink-1: #1e4f7a; --ink-2: #3d6b2e; --ink-3: #8a6414; --ink-4: #6d2f6d; --ink-5: #1f6b68; }

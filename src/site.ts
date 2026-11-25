@@ -156,6 +156,52 @@ export const library: { title: string; year: number; author: string; kind: 'book
   { title: 'Detective Conan', year: 1994, author: 'Gosho Aoyama', kind: 'manga', cover: '/library/detective-conan.webp', color: '#D9A441', ink: '#17160f' },
 ];
 
+// In the bag: the things I carry every day, as die-cut stickers on the home page, grouped into lots.
+// image is a cutout with a transparent background, in public/bag/. size is the real length of the picture's
+// longest side, in millimetres: every sticker is drawn to the same scale, so a lip balm sits small next to a
+// laptop. tilt is a small turn in degrees, so each sticker looks stuck on by hand. The section is hidden
+// while the list is empty.
+// TODO(Bill): the notes are first guesses; correct them.
+type BagItem = { name: string; note?: string; image: string; size: number; tilt: number };
+export const bag: { lot: string; items: BagItem[] }[] = [
+  {
+    lot: 'Electronics',
+    items: [
+      { name: 'iPhone Air', note: 'the daily driver', image: '/bag/iphone-air.webp', size: 156, tilt: 2 },
+      { name: 'Nothing Phone (3a) Pro', note: 'the second phone, for Android', image: '/bag/nothing-phone.webp', size: 164, tilt: -2 },
+      { name: 'iPhone 6', note: 'a camera, and only a camera', image: '/bag/iphone-6.webp', size: 138, tilt: -2 },
+      { name: 'MacBook Air 13-inch (M3)', note: 'stickers and all', image: '/bag/macbook.webp', size: 304, tilt: 1 },
+      { name: 'Xteink X4', note: 'where the books live', image: '/bag/e-reader.webp', size: 114, tilt: -2 },
+      { name: 'Bose QuietComfort Ultra (2nd Gen)', note: 'the quiet', image: '/bag/headphones.webp', size: 190, tilt: 2 }, // folded
+      { name: 'Anker A1695', note: 'never below 20%', image: '/bag/power-bank.webp', size: 157, tilt: -2 },
+    ],
+  },
+  {
+    lot: 'Pockets',
+    items: [
+      { name: 'Keys', note: 'a car fob and too many charms', image: '/bag/keys.webp', size: 114, tilt: 2 },
+      { name: 'Our Paraiso* MagSafe Card Holder', image: '/bag/stone-wallet.webp', size: 105, tilt: -2 },
+      { name: 'Bolo 80/20 Quick Draw Bifold Wallet', note: 'cards and cash', image: '/bag/red-wallet.webp', size: 220, tilt: 2 }, // open; 120 closed
+      { name: 'Altoids kit', note: 'EarPods, a lighter, pins, sticky notes', image: '/bag/altoids-open.webp', size: 120, tilt: -2 },
+    ],
+  },
+  {
+    lot: 'Paper',
+    items: [
+      { name: "Traveler's Notebook Passport", note: 'the leather wears in, not out', image: '/bag/travelers-notebook.webp', size: 130, tilt: 2 },
+      { name: 'Lamy Safari + Uniball One', note: 'two kinds of ink', image: '/bag/pens.webp', size: 139, tilt: -2 },
+    ],
+  },
+  {
+    lot: 'Personal',
+    items: [
+      { name: 'Guava Smells Violet', note: 'violet and fresh freesia', image: '/bag/perfume.webp', size: 100, tilt: -2 },
+      { name: 'Owala 18oz FreeSip Twist', note: 'Sports Paradise, always half full', image: '/bag/water-bottle.webp', size: 272, tilt: 2 },
+      { name: 'Aquaphor Lip Repair', note: 'non-negotiable', image: '/bag/lip-balm.webp', size: 70, tilt: 2 },
+    ],
+  },
+];
+
 export const photos: { image?: string; caption: string }[] = [
   { image: '/photos/huawei-global-final.webp', caption: 'Grand Prize, Cloud Track · Huawei ICT Competition Global Final, Shenzhen, May 2025' },
   { image: '/photos/huawei-third-prize.webp', caption: 'Third Prize, Computing Track · 10th Huawei ICT Competition Philippines Awarding, Dec 2025' },
