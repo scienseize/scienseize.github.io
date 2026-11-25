@@ -1,6 +1,6 @@
 ---
 title: Semiotic Validity
-order: 3
+order: 6
 kind: Research paper · Information retrieval
 year: '2025'
 blurb: Does a vector search keep the meaning, or only the match?

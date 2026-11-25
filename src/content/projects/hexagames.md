@@ -1,6 +1,6 @@
 ---
 title: Hexagames
-order: 6
+order: 5
 kind: Realtime web app
 year: '2026'
 blurb: Fair rotation, live scoreboard and player stats for pick-up basketball nights.

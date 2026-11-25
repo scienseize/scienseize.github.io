@@ -1,6 +1,6 @@
 ---
 title: Energy Anatomy
-order: 2
+order: 1
 kind: Thesis · ML systems
 year: '2026'
 blurb: Where does the energy go when a transformer trains?

@@ -1,6 +1,6 @@
 ---
 title: PalmCards
-order: 1
+order: 3
 kind: AI · computer vision
 year: '2026'
 blurb: A gesture-controlled editor and rehearsal mirror for words you have to say out loud.

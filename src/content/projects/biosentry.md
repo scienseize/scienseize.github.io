@@ -1,6 +1,6 @@
 ---
 title: BioSentry Intelligence
-order: 5
+order: 2
 kind: Clinical triage
 year: '2026'
 blurb: An early-warning dashboard for Philippine hospital wards.
