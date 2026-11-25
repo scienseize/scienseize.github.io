@@ -36,6 +36,8 @@ const ring = (n: number, outer: number, inner: number, turn = 0) =>
   }).join(' ');
 const burst = ring(24, 29, 26);
 const star = ring(5, 10, 4);
+// A hackathon or prize win gets a trophy cup; a paper award gets the seal.
+const medal = (award: string) => (/hackathon|prize/i.test(award) ? 'cup' : 'seal');
 const roman = (n: number) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] ?? String(n); // chapters and plates
 const initials = (name: string) => name.split(/[\s-]+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const caption = (b: (typeof library)[number], i: number) =>
@@ -137,19 +139,29 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
                 <span class="stamp" aria-hidden="true">Classified</span>
               </div>
             : <div class="shot"><span class="meta">screenshot pending</span></div>}
+        {p.award && (
+          <span class={`medal ${medal(p.award)}`}>
+            {medal(p.award) === 'cup'
+              ? <svg viewBox="0 0 64 78" aria-hidden="true">
+                  <path class="handle" d="M18 14c-9 0-11 6-10 10 1 5 6 8 12 9M46 14c9 0 11 6 10 10-1 5-6 8-12 9" />
+                  <path class="foil" d="M16 8h32v12c0 14-7 22-16 22s-16-8-16-22z" />
+                  <path class="ring" d="M20 12v8c0 8 3 13 7 16" />
+                  <polygon class="star" points={star} transform="translate(0 -7) scale(.8)" transform-origin="32 30" />
+                  <path class="foil" d="M28 42h8v10h-8z" />
+                  <path class="ribbon" d="M20 52h24v6H20z" />
+                  <path class="star" d="M16 58h32v8H16z" />
+                </svg>
+              : <svg viewBox="0 0 64 78" aria-hidden="true">
+                  <path class="ribbon" d="M23 40 13 76l9-6 7 7 5-35zM41 40l10 36-9-6-7 7-5-35z" />
+                  <polygon class="foil" points={burst} />
+                  <circle class="ring" cx="32" cy="30" r="20" />
+                  <circle class="ring fine" cx="32" cy="30" r="17" />
+                  <polygon class="star" points={star} />
+                </svg>}
+            <span class="sr">Award: </span>{p.award}
+          </span>
+        )}
         <div class="tag">
-          {p.award && (
-            <span class="seal" title={p.award}>
-              <svg viewBox="0 0 64 78" aria-hidden="true">
-                <path class="ribbon" d="M23 40 13 76l9-6 7 7 5-35zM41 40l10 36-9-6-7 7-5-35z" />
-                <polygon class="foil" points={burst} />
-                <circle class="ring" cx="32" cy="30" r="20" />
-                <circle class="ring fine" cx="32" cy="30" r="17" />
-                <polygon class="star" points={star} />
-              </svg>
-              <span class="sr">Award: {p.award}</span>
-            </span>
-          )}
           <p class="label">Exhibit {letter(i)} · {p.year}</p>
           <h3>{p.title}</h3>
           <p class="kind">{p.kind}</p>
@@ -659,17 +671,33 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   }
   .exhibit:hover .tag { transform: rotate(0deg) translateY(-2px); }
 
-  /* Commendation seal on award-winning projects: brass foil with oxblood ribbon tails, pressed onto
-     the tag's corner like the seal on a police commendation. */
-  .seal { position: absolute; z-index: 1; top: -30px; right: -6px; width: 46px; --tilt: 9deg; transform: rotate(var(--tilt)); filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3)); }
-  .seal svg { display: block; width: 100%; overflow: visible; }
-  .seal .ribbon { fill: #9e2b25; stroke: #5e1713; stroke-width: 0.8; }
-  .seal .foil { fill: #c9a24a; stroke: #6f531a; stroke-width: 0.8; }
-  .seal .ring { fill: none; stroke: #6f531a; stroke-width: 1; }
-  .seal .ring.fine { stroke-width: 0.5; stroke-dasharray: 1.2 1.4; }
-  .seal .star { fill: #6f531a; }
-  .exhibit.filing .seal { opacity: 0; }
-  .exhibit.filed .seal { animation: thump 280ms ease-in calc(var(--delay) + 1150ms) backwards; }
+  /* Medal stickers on award-winning projects: a die-cut brass medal stuck over the print's right edge,
+     with the award written under it by hand. A paper award is a commendation seal with oxblood ribbon
+     tails; a hackathon win is a trophy cup. Four hard 1.5px drop-shadows, one each way, draw the white
+     die-cut edge, and a soft one lifts the sticker off the page. */
+  .exhibit { position: relative; }
+  .medal {
+    position: absolute; z-index: 2; top: 40px; right: -16px; width: 104px;
+    display: flex; flex-direction: column; align-items: center;
+    font: 500 19px/1 Caveat, cursive; color: #17160f; text-align: center; /* the print stays light in dark mode */
+    text-shadow: 0 0 3px #efe8d4, 0 0 3px #efe8d4, 0 0 2px #efe8d4;
+    --tilt: 7deg; transform: rotate(var(--tilt)); pointer-events: none;
+  }
+  .medal.cup { --tilt: -6deg; }
+  .medal svg {
+    display: block; width: 58px; margin-bottom: 2px; overflow: visible;
+    filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+      drop-shadow(0 3px 3px rgb(0 0 0 / 0.28));
+  }
+  .medal .ribbon { fill: #9e2b25; stroke: #5e1713; stroke-width: 0.8; }
+  .medal .foil { fill: #c9a24a; stroke: #6f531a; stroke-width: 0.8; }
+  .medal .ring { fill: none; stroke: #6f531a; stroke-width: 1; }
+  .medal .ring.fine { stroke-width: 0.5; stroke-dasharray: 1.2 1.4; }
+  .medal .star { fill: #6f531a; }
+  .medal .handle { fill: none; stroke: #6f531a; stroke-width: 3.2; stroke-linecap: round; }
+  .exhibit.filing .medal { opacity: 0; }
+  .exhibit.filed .medal { animation: thump 280ms ease-in calc(var(--delay) + 1150ms) backwards; }
+  @media (max-width: 600px) { .medal { right: -8px; } }
 
   /* Filed as evidence (see the script). Before: blank newsprint, no tag, no stamp.
      Then, from --delay: the dots grow out of the paper (700 ms), the tag swings in on its hole
