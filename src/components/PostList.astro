@@ -1,18 +1,111 @@
 ---
 // Timetable rows: title, dotted leader, date. A nod to the A.B.C. railway guide.
+// A row opens its post in a sheet over the page, with /writing/<slug>/ in the address bar; the post's own
+// page stays at that address for direct links, new tabs and search engines.
 import type { CollectionEntry } from 'astro:content';
+import Article from './Article.astro';
+import { site } from '../site';
 interface Props { posts: CollectionEntry<'writing'>[] }
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 ---
 <ul class="timetable">
   {Astro.props.posts.map((p) => (
     <li>
-      <a href={`/writing/${p.id}/`}>{p.data.title}</a>
+      <a href={`/writing/${p.id}/`} data-post={p.id}>{p.data.title}</a>
       <span class="dots" aria-hidden="true"></span>
       <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
     </li>
   ))}
 </ul>
+
+{Astro.props.posts.map((p) => (
+  <dialog class="post-sheet" data-post={p.id} data-title={p.data.title} aria-label={p.data.title}>
+    <div class="post-inner">
+      <header class="post-running">
+        <span>{site.name} · Writing</span>
+        <button type="button" class="fold" data-close>Fold the paper</button>
+      </header>
+      <Article post={p} />
+    </div>
+  </dialog>
+))}
+
+<script>
+  import { calm, show, hide, closeOnEsc, slideUp, slideDown } from '../motion';
+  // Posts open in a sheet as a typed bulletin: the page slides up, blank where the headline goes, and the
+  // headline types itself in, letter by letter, like a wire report coming in. A row puts /writing/<slug>/ in
+  // the address bar; Esc, the fold button, a click outside or Back slides the page away again, and the
+  // address returns to the page. A row clicked with a modifier key still opens the post's own page.
+  // The sheet is labelled by the full title (aria-label), so a screen reader never hears half a headline.
+  const sheets = new Map([...document.querySelectorAll<HTMLDialogElement>('dialog.post-sheet')].map((d) => [d.dataset.post!, d]));
+  if (sheets.size) {
+    const base = location.pathname; // the page the sheets open over: / or /writing/
+    const pageTitle = document.title;
+    const siteName = pageTitle.split(' · ').pop()!;
+    const postOf = (path: string) => path.match(/^\/writing\/([^/]+)\/?$/)?.[1];
+
+    // The headline types into place: the typed part, a cursor, and the rest still there but unseen, so the
+    // page below never moves while the headline fills in.
+    let typing = 0;
+    const type = (h: HTMLElement) => {
+      const full = h.dataset.full ?? (h.dataset.full = h.textContent!.trim());
+      clearInterval(typing);
+      if (calm()) return void (h.textContent = full);
+      const shown = document.createElement('span'), cursor = document.createElement('span'), rest = document.createElement('span');
+      cursor.className = 'type-cursor'; cursor.textContent = '_'; rest.className = 'type-rest'; rest.textContent = full;
+      h.replaceChildren(shown, cursor, rest);
+      let i = 0;
+      setTimeout(() => {
+        typing = window.setInterval(() => {
+          i++; shown.textContent = full.slice(0, i); rest.textContent = full.slice(i);
+          if (i >= full.length) { clearInterval(typing); h.textContent = full; }
+        }, 45);
+      }, 380); // after the page has slid up
+    };
+
+    const open = (slug: string, push: boolean) => {
+      const d = sheets.get(slug);
+      if (!d || d.open) return;
+      show(d, slideUp);
+      d.querySelector('.post-inner')!.scrollTop = 0;
+      type(d.querySelector<HTMLElement>('h1')!);
+      document.title = `${d.dataset.title} · ${siteName}`;
+      if (push) history.pushState({ post: slug }, '', `/writing/${slug}/`);
+    };
+    const shut = (d: HTMLDialogElement) => hide(d, slideDown);
+
+    document.querySelectorAll<HTMLAnchorElement>('a[data-post]').forEach((a) =>
+      a.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        open(a.dataset.post!, true);
+      }),
+    );
+
+    sheets.forEach((d) => {
+      closeOnEsc(d, shut); // Esc slides it away too
+      d.addEventListener('click', (e) => {
+        const t = e.target as Element;
+        if (t === d || t.closest('[data-close]')) shut(d); // `t === d` is the backdrop
+      });
+      d.addEventListener('close', () => {
+        clearInterval(typing);
+        const h = d.querySelector<HTMLElement>('h1')!;
+        if (h.dataset.full) h.textContent = h.dataset.full;
+        document.title = pageTitle;
+        if (!postOf(location.pathname)) return; // already closed by Back
+        if (history.state?.post) history.back();
+        else history.replaceState(null, '', base);
+      });
+    });
+
+    addEventListener('popstate', () => {
+      const slug = postOf(location.pathname);
+      sheets.forEach((d, s) => { if (d.open && s !== slug) shut(d); });
+      if (slug) open(slug, false);
+    });
+  }
+</script>
 
 <style>
   .timetable { list-style: none; margin: 0; padding: 0; }
@@ -21,4 +114,39 @@ const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 
   a:hover { color: var(--accent); }
   .dots { flex: 1; border-bottom: 1px dotted var(--muted); opacity: 0.6; transform: translateY(-4px); }
   time { font: 13px var(--mono); color: var(--muted); white-space: nowrap; }
+
+  /* The post sheet: the newspaper page, anchored at the bottom like a project sheet, in the site's own
+     colours so it follows the theme. It slides up and its headline types in (see the script). */
+  .post-sheet {
+    margin: auto auto 0; padding: 0; border: 0;
+    width: min(720px, 100%); max-width: 100%; height: 92dvh; max-height: 92dvh;
+    border-radius: 3px 3px 0 0; background: var(--bg); color: var(--ink); outline: none;
+    box-shadow: 0 -8px 40px rgb(0 0 0 / 0.3);
+  }
+  .post-sheet::backdrop {
+    background: radial-gradient(ellipse at center, rgb(15 14 10 / 0.45), rgb(15 14 10 / 0.8));
+    opacity: 1; transition: opacity 0.45s, overlay 0.45s allow-discrete, display 0.45s allow-discrete;
+  }
+  @starting-style { .post-sheet[open]::backdrop { opacity: 0; } }
+  :global(html:has(dialog[open])) { overflow: hidden; }
+  .post-inner { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 0 clamp(20px, 6vw, 56px) 56px; }
+  .post-inner > * { max-width: 680px; margin-inline: auto; }
+  .post-inner :global(.paper) { margin-top: 18px; }
+  /* A running head with the close button: a line from the story, not a key name. */
+  .post-running {
+    position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    padding: 16px 0 10px; background: var(--bg); border-bottom: 1px solid var(--line);
+    font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .fold {
+    flex: none; padding: 2px 0; border: 0; border-bottom: 1px solid currentColor; background: none; cursor: pointer;
+    font: italic 14px var(--article); letter-spacing: 0; text-transform: none; color: var(--accent);
+  }
+  .fold:hover { color: var(--ink); }
+  .fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  /* The typing headline: a blinking cursor, and the untyped rest held in place but unseen. */
+  .post-sheet :global(.type-cursor) { color: var(--accent); animation: blink 0.8s steps(1) infinite; }
+  .post-sheet :global(.type-rest) { visibility: hidden; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .post-sheet::backdrop { transition: none; } }
 </style>

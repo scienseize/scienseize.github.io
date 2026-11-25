@@ -1,7 +1,7 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { site } from '../../site';
+import Article from '../../components/Article.astro';
 
 export async function getStaticPaths() {
   const posts = await getCollection('writing', (p) => !p.data.draft);
@@ -9,74 +9,7 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
-const words = (post.body ?? '').split(/\s+/).filter(Boolean).length;
-const minutes = Math.max(1, Math.round(words / 230));
-const day = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 ---
 <Base title={post.data.title} description={post.data.description} published={post.data.date}>
-  <!-- A post is set as a newspaper article: a nameplate strip, the headline and deck, a byline
-       between rules, then the story in Lora, as on Substack, with a drop cap and an end mark. -->
-  <article class="paper">
-    <header>
-      <div class="strip">
-        <a href="/writing/">Writing</a>
-        <span>{site.place}</span>
-        <time datetime={post.data.date.toISOString()}>{day}</time>
-      </div>
-      <h1>{post.data.title}</h1>
-      {post.data.description && <p class="deck">{post.data.description}</p>}
-      <p class="byline">By {site.name} <span aria-hidden="true">·</span> {minutes} min read</p>
-    </header>
-    <div class="prose"><Content /></div>
-    <p class="foot">Replies by mail to <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
-  </article>
+  <Article post={post} />
 </Base>
-
-<style>
-  .paper { margin-top: 32px; }
-  .strip {
-    display: flex; justify-content: space-between; gap: 12px; padding: 6px 0;
-    border-top: 3px double var(--ink); border-bottom: 1px solid var(--ink);
-    font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-  }
-  .strip a { text-decoration: none; color: var(--ink); }
-  .strip a:hover { color: var(--accent); }
-  @media (max-width: 420px) { .strip span { display: none; } }
-
-  h1 { margin: 28px 0 0; font: 600 clamp(34px, 8vw, 46px)/1.15 var(--article); letter-spacing: -0.01em; text-wrap: balance; }
-  .deck { margin: 14px 0 0; font: 400 clamp(18px, 4.5vw, 21px)/1.45 var(--article); color: var(--muted); text-wrap: pretty; }
-  .byline {
-    margin: 22px 0 32px; padding: 8px 0; border-block: 1px solid var(--line);
-    font: 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
-  }
-
-  .prose { font: 18px/1.6 var(--article); text-wrap: pretty; }
-  /* Bold and italics in the Markdown read as plain text. */
-  .prose :global(:is(strong, b)) { font-weight: inherit; }
-  .prose :global(:is(em, i)) { font-style: normal; }
-  .prose :global(p) { margin: 0 0 1.1em; }
-  /* The drop cap, three lines deep, on the story's first paragraph. */
-  .prose > :global(p:first-child::first-letter) {
-    float: left; margin: 0.08em 0.1em 0 0; font: 400 4.1em/0.82 var(--article); color: var(--accent);
-  }
-  /* The end mark, as a newspaper closes a story. */
-  .prose > :global(p:last-child::after) { content: '\25A0'; margin-left: 0.4em; font-size: 0.7em; color: var(--accent); }
-  .prose :global(h2) {
-    margin: 2em 0 0.6em; padding-top: 10px; border-top: 1px solid var(--ink);
-    font: 500 13px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; text-align: left;
-  }
-  .prose :global(hr) { width: 60px; margin: 2em auto; border: 0; border-top: 1px solid var(--muted); }
-  /* Block quotes become pull quotes between rules. */
-  .prose :global(blockquote) {
-    margin: 1.6em 0; padding: 14px 0; border-block: 2px solid var(--ink);
-    font: 400 1.2em/1.45 var(--article); text-align: left;
-  }
-  .prose :global(blockquote p) { margin: 0; }
-  .prose :global(code) { font: 0.85em var(--mono); background: var(--paper); padding: 1px 5px; border-radius: 3px; }
-  .prose :global(pre) { padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 14px; text-align: left; }
-  .prose :global(pre code) { background: none; padding: 0; }
-  .prose :global(img) { margin: 28px 0; }
-
-  .foot { margin-top: 40px; padding-top: 10px; border-top: 3px double var(--ink); font: 13px var(--mono); color: var(--muted); }
-</style>

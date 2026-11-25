@@ -46,17 +46,22 @@ const webpSize = (src: string): { width?: number; height?: number } => {
   const b = readFileSync(`public${src}`);
   return b.toString('ascii', 12, 16) === 'VP8X' ? { width: b.readUIntLE(24, 3) + 1, height: b.readUIntLE(27, 3) + 1 } : {};
 };
-// The bag's lots, with each item numbered through all of them and its real height in millimetres (its size
-// is the picture's longest side), so the page can draw every item to one scale.
+// The bag's lots, with each item numbered through all of them and its real width and height in millimetres
+// (its size is the picture's longest side). Each lot also keeps its items' total width and its tallest
+// item, so its folder can pick the largest scale at which the row still fits (see .folder-body).
 let itemNo = 0;
-const lots = bag.map(({ lot, items }) => ({
-  lot,
-  items: items.map((it) => {
+const lots = bag.map(({ lot, items }) => {
+  const sized = items.map((it) => {
     const dim = webpSize(it.image);
-    const tall = dim.width && dim.height ? (it.size * dim.height) / Math.max(dim.width, dim.height) : it.size;
-    return { ...it, dim, tall: tall.toFixed(1), no: String(++itemNo).padStart(2, '0'), label: it.note ? `${it.name} — ${it.note}` : it.name };
-  }),
-}));
+    const long = dim.width && dim.height ? Math.max(dim.width, dim.height) : 1;
+    const wide = dim.width ? (it.size * dim.width) / long : it.size;
+    const tall = dim.height ? (it.size * dim.height) / long : it.size;
+    return { ...it, dim, wide, tall: tall.toFixed(1), no: String(++itemNo).padStart(2, '0'), label: it.note ? `${it.name} — ${it.note}` : it.name };
+  });
+  const sumWide = sized.reduce((n, it) => n + it.wide, 0).toFixed(0);
+  const tallest = Math.max(...sized.map((it) => Number(it.tall))).toFixed(0);
+  return { lot, items: sized, sumWide, tallest };
+});
 // Wear grows with age: 0 for this year's books, 1 for 50 years or older.
 const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear() - year) / 50)).toFixed(2);
 ---
@@ -194,23 +199,29 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
         <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
       </filter>
     </svg>
-    <div class="lots">
-      {lots.map(({ lot, items }, g) => (
-        <div class="lot" role="group" aria-label={lot}>
-          <p class="lot-name" aria-hidden="true">{letter(g)} · {lot}</p>
-          <div class="stickers">
-            {items.map((it) => (
-              <button type="button" class="sticker" aria-label={it.label} aria-pressed="false"
-                data-caption={`Item ${it.no} · ${it.label}`} style={`--tilt:${it.tilt}deg;--tall:${it.tall}`}>
-                <img src={it.image} alt="" loading="lazy" draggable="false" {...it.dim} />
-              </button>
-            ))}
+    <div class="drawer">
+      {lots.map(({ lot, items, sumWide, tallest }, g) => (
+        <div class="folder" style={`--i:${g};--sum-wide:${sumWide};--tallest:${tallest};--n:${items.length};view-transition-name:bag-lot-${g}`}>
+          <button type="button" class="folder-tab" aria-expanded="false" aria-controls={`bag-lot-${g}`}
+            data-caption={`File ${letter(g)} · ${lot} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`}>
+            {letter(g)} · {lot}<span class="count">{items.length}</span>
+          </button>
+          <div class="folder-body" id={`bag-lot-${g}`} role="group" aria-label={lot} hidden>
+            <div class="stickers">
+              {items.map((it, k) => (
+                <button type="button" class="sticker" aria-label={it.label} aria-pressed="false"
+                  data-caption={`Item ${it.no} · ${it.label}`} style={`--tilt:${it.tilt}deg;--tall:${it.tall};--k:${k}`}>
+                  <img src={it.image} alt="" loading="lazy" draggable="false" {...it.dim} />
+                </button>
+              ))}
+            </div>
+            <p class="scale" aria-hidden="true"><span></span>10 cm · to scale</p>
           </div>
         </div>
       ))}
-      <p class="scale" aria-hidden="true"><span></span>10 cm · all to scale</p>
+      <div class="drawer-front" aria-hidden="true"><span></span></div>
     </div>
-    <p class="log" id="bag-caption" aria-live="polite">Carried daily. Point at an item.</p>
+    <p class="log" id="bag-caption" aria-live="polite">{lots.length} files. Pull one out.</p>
   </div>
 </section>}
 
@@ -272,6 +283,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 ))}
 
 <script>
+  import { show, hide, closeOnEsc, turnIn, turnOut, develop, lift } from '../motion';
   // This script serves the home page and the section pages, so each part checks that its section is there.
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -460,59 +472,54 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   };
   stickers.forEach((s) => ['pointerenter', 'focus', 'click'].forEach((ev) => s.addEventListener(ev, () => pick(s))));
 
-  // Iris: like a silent detective film, a circle opens from the spot that was clicked to reveal
-  // the exhibit or photo, and shrinks back to that spot on close. Keyboard and direct links open
-  // from the centre of the element. With reduced motion, dialogs open and close at once.
-  const irisFrom = (e: MouseEvent, el: Element) => {
-    if (e.detail > 0) return { x: e.clientX, y: e.clientY }; // a real click or tap
-    const r = el.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; // Enter or Space
-  };
-  const irisShape = (d: HTMLDialogElement, from?: { x: number; y: number }) => {
-    const r = d.getBoundingClientRect();
-    const x = from ? from.x - r.left : r.width / 2, y = from ? from.y - r.top : r.height / 2;
-    const R = Math.hypot(Math.max(x, r.width - x), Math.max(y, r.height - y));
-    return [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`];
-  };
-  const irisOpen = (d: HTMLDialogElement, from?: { x: number; y: number }) => {
-    d.showModal();
-    if (calm) return;
-    const [small, big] = irisShape(d, from);
-    d.dataset.iris = JSON.stringify(from ?? null);
-    d.animate({ clipPath: [small, big] }, { duration: 650, easing: 'cubic-bezier(0.65, 0, 0.25, 1)' });
-  };
-  const irisClose = (d: HTMLDialogElement) => {
-    if (!d.open || d.dataset.closing) return;
-    if (calm) return d.close();
-    d.dataset.closing = '1';
-    const [small, big] = irisShape(d, JSON.parse(d.dataset.iris || 'null') ?? undefined);
-    const a = d.animate({ clipPath: [big, small] }, { duration: 420, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' });
-    a.onfinish = () => { delete d.dataset.closing; d.close(); a.cancel(); };
-  };
-  // Esc closes with the iris too.
-  document.querySelectorAll<HTMLDialogElement>('dialog.sheet, dialog.lightbox').forEach((d) =>
-    d.addEventListener('cancel', (e) => { e.preventDefault(); irisClose(d); }),
-  );
+  // The bag's folders: a tab pulls its folder out and open, and files back the one that was open; the same
+  // tab files it away again. Where the browser has view transitions, the folders slide between their places.
+  // Pointing at or focusing a tab starts loading that folder's pictures, so they are there when it opens.
+  const folders = [...document.querySelectorAll<HTMLElement>('.folder')];
+  const filedCaption = bagCaption?.textContent ?? '';
+  folders.forEach((f) => {
+    const tab = f.querySelector<HTMLButtonElement>('.folder-tab')!;
+    const warm = () => f.querySelectorAll('img').forEach((i) => (i.loading = 'eager'));
+    tab.addEventListener('pointerenter', warm);
+    tab.addEventListener('focus', warm);
+    tab.addEventListener('click', () => {
+      warm();
+      const opening = !f.classList.contains('open');
+      const swap = () => folders.forEach((o) => {
+        const on = opening && o === f;
+        o.classList.toggle('open', on);
+        o.querySelector('.folder-tab')!.setAttribute('aria-expanded', String(on));
+        o.querySelector<HTMLElement>('.folder-body')!.hidden = !on;
+      });
+      if (calm || !('startViewTransition' in document)) swap();
+      else document.startViewTransition(swap);
+      stickers.forEach((s) => s.setAttribute('aria-pressed', 'false'));
+      bagCaption!.textContent = opening ? tab.dataset.caption! : filedCaption;
+    });
+  });
 
-  // Photos: a click opens the full-size photo; Esc, the close button or a click outside closes it.
+  // Photos: a click opens the full-size print, which develops out of blank paper (src/motion.ts); Esc, the
+  // close button or a click outside lifts it away.
   const lightbox = document.querySelector<HTMLDialogElement>('dialog.lightbox')!;
   const lightboxImg = lightbox.querySelector('img')!;
   const lightboxCaption = lightbox.querySelector('.lightbox-caption')!;
+  const shutPhoto = (d: HTMLDialogElement) => hide(d, lift);
   document.querySelectorAll<HTMLButtonElement>('.print').forEach((btn) =>
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
       lightboxImg.src = btn.dataset.full!;
       lightboxImg.alt = btn.dataset.caption!;
       lightboxCaption.textContent = btn.dataset.caption!;
-      irisOpen(lightbox, irisFrom(e, btn));
+      show(lightbox, develop, lightboxImg);
     }),
   );
+  closeOnEsc(lightbox, shutPhoto);
   lightbox.addEventListener('click', (e) => {
     const t = e.target as Element;
-    if (t !== lightboxImg) irisClose(lightbox);
+    if (t !== lightboxImg) shutPhoto(lightbox);
   });
 
-  // Project sheets: a card opens its sheet and puts /projects/<slug>/ in the address bar.
-  // Esc, the close button, a click outside, or Back closes it.
+  // Project sheets: a card turns its sheet in like a page of the novel (src/motion.ts) and puts
+  // /projects/<slug>/ in the address bar. Esc, the close button, a click outside, or Back turns it back.
   const sheets = new Map(
     [...document.querySelectorAll<HTMLDialogElement>('dialog.sheet')].map((d) => [d.dataset.slug!, d]),
   );
@@ -522,10 +529,11 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   const homeTitle = page.dataset.page ? `${page.dataset.page} · ${siteName}` : siteName;
   const slugOf = (path: string) => path.match(/^\/projects\/([^/]+)\/?$/)?.[1];
 
-  const open = (slug: string, push: boolean, from?: { x: number; y: number }) => {
+  const shut = (d: HTMLDialogElement) => hide(d, turnOut);
+  const open = (slug: string, push: boolean) => {
     const d = sheets.get(slug);
     if (!d || d.open) return;
-    irisOpen(d, from);
+    show(d, turnIn);
     document.title = `${d.dataset.title} · ${siteName}`;
     if (push) history.pushState({ sheet: slug }, '', `/projects/${slug}/`);
   };
@@ -534,14 +542,15 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     a.addEventListener('click', (e) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let "open in new tab" work
       e.preventDefault();
-      open(a.dataset.project!, true, irisFrom(e, a));
+      open(a.dataset.project!, true);
     }),
   );
 
   sheets.forEach((d) => {
+    closeOnEsc(d, shut);
     d.addEventListener('click', (e) => {
       const t = e.target as Element;
-      if (t === d || t.closest('[data-close]')) irisClose(d); // `t === d` is the backdrop
+      if (t === d || t.closest('[data-close]')) shut(d); // `t === d` is the backdrop
     });
     d.addEventListener('close', () => {
       document.title = homeTitle;
@@ -553,7 +562,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
 
   addEventListener('popstate', () => {
     const slug = slugOf(location.pathname);
-    sheets.forEach((d, s) => { if (d.open && s !== slug) irisClose(d); });
+    sheets.forEach((d, s) => { if (d.open && s !== slug) shut(d); });
     if (slug) open(slug, false);
   });
 
@@ -819,26 +828,56 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .spine .a { position: absolute; z-index: 1; bottom: 7px; font: 9px var(--mono); opacity: 0.8; }
   .cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-  /* In the bag: each item is a die-cut sticker (the #sticker filter draws the white border), stuck on the
-     case file at a slight angle, in lots (Electronics, Pockets...) that sit side by side when they fit.
-     Every item is drawn to one scale: --mm is the pixels for a real millimetre, from the width of the lots
-     (a container), so the laptop's row always fits; --tall is the item's real height in millimetres. Items
-     stand on their lot's line, so their sizes compare. The picked one lifts flat toward the reader and its
-     shadow grows. */
-  .lots {
-    container-type: inline-size; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 20px; padding-top: 6px;
-    --mm: clamp(0.46px, 100cqw / 960, 0.7px);
+  /* In the bag: the lots are manila folders filed in a drawer. Closed, a folder shows only its edge and its
+     tab; the tabs step across, as in a real drawer, so each one can be read. A tab pulls its folder up out of
+     the drawer and open (order -1 puts it on top; the script makes the move a view transition), and the
+     stickers slide out of it one after another. Each item is a die-cut sticker (the #sticker filter draws
+     the white border), stuck on at a slight angle and drawn to its folder's scale: --mm is the pixels for
+     a real millimetre (see .folder-body), and --tall is the item's real height in millimetres. The drawer
+     is a container, so the scale follows its width. The picked sticker lifts flat toward the reader. */
+  .drawer {
+    container-type: inline-size;
+    display: flex; flex-direction: column; margin-top: 6px; padding-top: 22px;
+    --folder: #dccba5; --folder-front: #cdb98e; --edge: rgb(59 53 42 / 0.3); --pulled: #9e2b25;
   }
-  .lot { flex: 1 1 auto; }
-  /* The lot's name never sets its width (contain), so small lots pack side by side; a long name is cut short. */
-  .lot-name {
-    contain: inline-size; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    margin: 0 0 2px; padding-bottom: 3px; border-bottom: 1px dashed var(--rule);
-    font: 10px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75;
+  :root[data-theme='dark'] .drawer { --folder: #3a3329; --folder-front: #2a251d; --edge: rgb(221 213 194 / 0.2); --pulled: #d65a4f; }
+  .folder {
+    position: relative; min-height: 14px; margin-top: 24px; border-radius: 0 3px 0 0; background: var(--folder);
+    box-shadow: 0 -1px 0 var(--edge), 0 -8px 12px -10px rgb(0 0 0 / 0.45);
   }
-  .stickers { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 2px; }
+  .folder:first-child { margin-top: 0; }
+  .folder.open { order: -1; margin: 0 0 30px; }
+  /* The tabs step from left to right, and the last one still ends inside the drawer. */
+  .folder-tab {
+    position: absolute; bottom: 100%; left: calc(var(--i) * (100% - 128px) / 3);
+    display: flex; gap: 6px; max-width: 100%; padding: 5px 12px 3px; border: 0; border-radius: 6px 6px 0 0;
+    background: var(--folder); color: inherit; cursor: pointer; box-shadow: 0 -1px 0 var(--edge);
+    font: 10px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+    transition: translate 0.2s cubic-bezier(0.2, 0.9, 0.2, 1), color 0.2s;
+  }
+  .folder-tab:is(:hover, :focus-visible) { translate: 0 -3px; }
+  .folder-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .folder.open .folder-tab { color: var(--pulled); }
+  .count { opacity: 0.55; }
+  /* Each folder draws at its own scale, the largest at which its items still fit in one row across the
+     drawer (24 px of padding and about 12 px around each sticker) and its tallest item stays under
+     min(240 px, 64% of the width). It never drops below 0.44 px a millimetre, where a full folder such as
+     Electronics wraps onto two rows on a phone. The ruler under the stickers is drawn at the same scale. */
+  .folder-body {
+    padding: 14px 12px 10px;
+    --mm: clamp(0.44px, min((100cqw - 24px - var(--n) * 12px) / var(--sum-wide), min(240px, 64cqw) / var(--tallest)), 1.6px);
+  }
+  /* The drawer's front panel, with a pull. */
+  .drawer-front {
+    order: 1; display: grid; place-items: center; height: 26px; margin-top: -2px; border-radius: 0 0 4px 4px;
+    background: var(--folder-front); box-shadow: 0 -1px 0 var(--edge), 0 6px 10px -8px rgb(0 0 0 / 0.4);
+  }
+  .drawer-front span { width: 56px; height: 8px; border-radius: 4px; background: rgb(0 0 0 / 0.22); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35); }
+  .stickers { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 0 2px; }
+  .folder.open .sticker { animation: pull-out 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) calc(160ms + var(--k) * 50ms) backwards; }
+  @keyframes pull-out { from { opacity: 0; translate: 0 22px; } }
   /* A ruler bracket 10 cm long, at the same scale. */
-  .scale { flex-basis: 100%; display: flex; align-items: center; gap: 8px; margin: 0; font: 10px var(--mono); letter-spacing: 0.06em; opacity: 0.7; }
+  .scale { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; font: 10px var(--mono); letter-spacing: 0.06em; opacity: 0.7; }
   .scale span { width: calc(100 * var(--mm)); height: 6px; border: 1px solid currentColor; border-top: 0; }
   .sticker {
     position: relative; margin: 0; padding: 5px; border: 0; border-radius: 10px;
@@ -851,7 +890,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
     z-index: 1; transform: rotate(0deg) scale(1.06); filter: drop-shadow(0 10px 12px rgb(60 40 15 / 0.32));
   }
   .sticker:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  @media (prefers-reduced-motion: reduce) { .sticker { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .sticker, .folder-tab { transition: none; } .folder.open .sticker { animation: none; } }
 
   /* Each tagline phrase gets one of these looks at random (see the script). Look 0 is the first one. */
   .doing { font: 0.85em var(--mono); color: var(--accent); --ink-1: #1e4f7a; --ink-2: #3d6b2e; --ink-3: #8a6414; --ink-4: #6d2f6d; --ink-5: #1f6b68; }
@@ -951,8 +990,9 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
   .lightbox .close-case { position: absolute; top: 16px; right: 18px; }
   @media (prefers-reduced-motion: reduce) { .crisp, .news::after, .stamp { transition: none; } }
 
-  /* Project sheet: anchored at the bottom. It opens with the iris (see the script). */
+  /* Project sheet: anchored at the bottom. It turns in like a page (see the script). */
   .sheet {
+    transform-origin: 0 50%; /* the book's spine: the page turns about it (src/motion.ts) */
     margin: auto auto 0; padding: 0; border: 0;
     width: min(720px, 100%); max-width: 100%; height: 92dvh; max-height: 92dvh;
     border-radius: 3px 3px 0 0; color: #2a2620; outline: none;
@@ -962,7 +1002,7 @@ const wear = (year: number) => Math.min(1, Math.max(0, (new Date().getFullYear()
       #f3ecda;
     box-shadow: inset 0 0 90px rgb(120 85 35 / 0.22), 0 -8px 40px rgb(0 0 0 / 0.3);
   }
-  /* The room dims around the iris, darker at the edges like an old film frame. */
+  /* The room dims around an open sheet or photo, darker at the edges like an old film frame. */
   .sheet::backdrop, .lightbox::backdrop {
     background: radial-gradient(ellipse at center, rgb(15 14 10 / 0.45), rgb(15 14 10 / 0.8));
     opacity: 1; transition: opacity 0.45s, overlay 0.45s allow-discrete, display 0.45s allow-discrete;
