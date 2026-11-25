@@ -97,13 +97,10 @@ const external = (href: string) => !href.startsWith('mailto:');
 
     <main><slot /></main>
 
-    <!-- Two rows on one grid: the links and the contact icons, then the small print and the clock. -->
+    <!-- Two rows: the contact icons, then the small print and the clock. The header stays on screen, so
+         the footer does not repeat its links. -->
     <footer>
       <div class="foot-row">
-        <nav aria-label="Footer">
-          <a href="/">Home</a>
-          {links.map((l) => <a href={l.href}>{l.label}</a>)}
-        </nav>
         <ul class="contact-icons">
           {contacts.map((c) => (
             <li><a href={c.href} aria-label={c.label} title={c.label} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>
@@ -263,11 +260,17 @@ const external = (href: string) => !href.startsWith('mailto:');
   img { max-width: 100%; display: block; }
   h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.2; }
 
-  main, .top, footer { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  main { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+  /* The header and footer span the whole window; their side gutter grows from 16 px on phones to 48 px. */
+  :root { --gutter: clamp(16px, 4vw, 48px); }
 
+  /* The header stays at the top of the window while the page scrolls, over the content (z-index above
+     the rail, under the flashlight). */
   .top {
+    position: sticky; top: 0; z-index: 45;
     display: flex; align-items: center; gap: 16px;
-    padding-top: 20px; padding-bottom: 20px;
+    padding: 6px var(--gutter);
+    background: var(--bg); border-bottom: 1px solid var(--line);
   }
   .mark { font: 26px/1 var(--deco); text-decoration: none; letter-spacing: 0.02em; margin-right: auto; }
   .mark span { color: var(--accent); }
@@ -276,12 +279,12 @@ const external = (href: string) => !href.startsWith('mailto:');
   .top nav a:hover { color: var(--ink); }
   #theme {
     font: inherit; color: var(--ink); background: none; cursor: pointer;
-    border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px;
+    border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; line-height: 1;
   }
   /* On phones the theme button stays beside the logo, and the links drop to a row of their own under
      them, spread across the width, so none has to be hidden and nothing runs off the edge. */
   @media (max-width: 480px) {
-    .top { flex-wrap: wrap; row-gap: 12px; }
+    .top { flex-wrap: wrap; row-gap: 4px; }
     .top nav { order: 1; width: 100%; justify-content: space-between; gap: 4px; }
   }
 
@@ -298,18 +301,14 @@ const external = (href: string) => !href.startsWith('mailto:');
   .page-head h1 { margin: 10px 0 0; font: 600 clamp(36px, 9vw, 52px)/1.05 var(--display); letter-spacing: -0.03em; text-wrap: balance; }
 
   footer {
-    margin-top: 96px; padding: 20px 16px 8px;
+    margin-top: 96px; padding: 20px var(--gutter) 8px;
     border-top: 1px solid var(--line);
   }
   .foot-row { display: flex; justify-content: space-between; align-items: center; gap: 8px 24px; flex-wrap: wrap; }
   /* The small print: the copyright and the clock, one size smaller, under a hairline. */
   .foot-row.small { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); font: 12px var(--mono); color: var(--muted); }
   footer p { margin: 0; }
-  /* The header links again, as on felixrieseberg.com. */
-  footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 13px var(--mono); }
-  footer nav a { text-decoration: none; color: var(--muted); }
-  footer .contact-icons { margin-inline: -8px; } /* the icons' round hit areas overhang, so the drawings line up with the text's edges, also when they wrap under the links */
-  footer nav a:hover { color: var(--ink); }
+  footer .contact-icons { margin-inline: -8px; } /* the icons' round hit areas overhang, so the drawings line up with the text's edges */
   .clock { font-variant-numeric: tabular-nums; }
   footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
 
