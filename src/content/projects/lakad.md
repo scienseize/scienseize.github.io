@@ -13,8 +13,6 @@ summary: >-
   Walking routes for Makati that avoid reported hazards and accessibility barriers. Commuters can file geotagged AR photo reports, with faces blurred on the server, and send SOS videos.
 ---
 
-Commuters get walking routes that avoid reported hazards and accessibility barriers. They can file geotagged AR photo reports, with faces blurred on the server, and send SOS videos.
+Commuters in Makati get walking routes that avoid reported hazards and accessibility barriers. They can file geotagged AR photo reports, with faces blurred on the server, and send SOS videos.
 
-On the other side, the city triages everything in a ranked ticket queue, with live traffic and forecast foot-traffic layers.
-
-Built by team Lakad Kinetic Development.
+The city sees every report in a ranked ticket queue, with live traffic and forecast foot-traffic layers. Built by team Lakad Kinetic Development.
