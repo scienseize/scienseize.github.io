@@ -1,0 +1,291 @@
+---
+// The end of the line, at the foot of every page: the train from the banner at the top crosses a stone
+// viaduct and pulls into a station town, over and over, in a halftone print in the page's own ink, with
+// no paper behind it, so the sky is the page. The station clock shows the time where I am.
+// Back to front: water (the scene mirrored, broken by ripples), the rocky bank on the left, the viaduct
+// and the train with its smoke, the station and its clock tower, the town, cypresses, near and far hills.
+import { site } from '../site';
+---
+<canvas class="terminus" aria-hidden="true" data-tz={site.timeZone}></canvas>
+
+<script>
+  import { hash, noise } from '../noise';
+  const canvas = document.querySelector<HTMLCanvasElement>('canvas.terminus')!;
+  const ctx = canvas.getContext('2d')!;
+  let W = 0, H = 0, k = 1, CELL = 4;
+  // Landmarks, set on resize: water line, deck (rail) level, the viaduct's ends, the train's front.
+  let WY = 0, VY = 0, V0 = 0, V1 = 0, TF = 0, span = 0, pier = 0;
+  const bump = (x: number, at: number, wide: number) => Math.exp(-(((x / W - at) / wide) ** 2));
+
+  // Hills: a far range, and wooded near hills that rise above the viaduct and climb to both banks.
+  // Their tops are ragged treelines, and their faces are clumps of trees.
+  const farHill = (x: number) => H * (0.3 + 0.08 * noise(x / W * 3 + 1.7, 0.5)) - Math.max(0, noise(x * 0.06 / k, 2.1) - 0.4) * 14 * k;
+  const nearHill = (x: number) => H * (0.5 - 0.2 * Math.max(bump(x, 0.02, 0.16), bump(x, 0.94, 0.2)) + 0.08 * (noise(x / W * 4, 1.1) - 0.5)) - Math.max(0, noise(x * 0.08 / k, 5.3) - 0.35) * 12 * k;
+  // A canopy of round tree clumps, as an engraver draws a wooded hill: each clump is lit from the top left,
+  // pale on top and dark underneath, with dark gaps between clumps. size is a clump's width; ink scales it all.
+  const foliage = (x: number, y: number, size: number, ink: number) => {
+    const g = size * k, gx = Math.floor(x / g), gy = Math.floor(y / g);
+    let best = 2, sx = 0, sy = 0;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const a = gx + i, b = gy + j, r = g * (0.55 + 0.25 * hash(a, b + 50)); // under one cell, so the 3x3 search never cuts a clump
+      const dx = x - (a + hash(a, b)) * g, dy = y - (b + hash(b, a + 99)) * g, q = Math.hypot(dx, dy) / r;
+      if (q < best) { best = q; sx = dx / r; sy = dy / r; }
+    }
+    if (best > 1) return 0.85 * ink; // the shadow between clumps
+    return ink * Math.max(0.03, 0.26 + 0.5 * (sx * 0.45 + sy * 0.9) + 0.25 * best * best);
+  };
+
+  // Cypresses: tall dark spindles along the hilltops, more of them on the near hills.
+  const cypress = (x: number, y: number) => {
+    for (const [ridge, gap, seed, tall] of [[nearHill, 26, 3, 60], [farHill, 34, 9, 30]] as const) {
+      const g = gap * k, i = Math.floor(x / g);
+      for (const j of [i - 1, i, i + 1]) {
+        if (hash(j, seed) < 0.62) continue;
+        const cx = (j + 0.5) * g, h = tall * k * (0.5 + 0.5 * hash(j, seed + 1)), base = ridge(cx) + 6 * k, t = (y - base + h) / h;
+        if (t < 0 || t > 1) continue;
+        if (Math.abs(x - cx) < 4.5 * k * (tall / 60 + 0.3) * Math.sqrt(Math.sin(Math.PI * Math.min(1, t * 1.15)))) return 0.85;
+      }
+    }
+    return 0;
+  };
+
+  // The town on the right bank: rows of houses up the hill, pale walls under dark roofs, with small windows.
+  const town = (x: number, y: number) => {
+    const cw = 24 * k, ch = 17 * k, j = Math.floor(y / ch), i = Math.floor((x - (j % 2) * cw * 0.5) / cw);
+    const left = i * cw + (j % 2) * cw * 0.5, top = j * ch, mid = left + cw / 2;
+    if (mid < V1 + 64 * k || hash(i, j) < 0.4 || top < nearHill(mid) - 2 * k || top > VY + 10 * k) return -1;
+    const w = cw * (0.6 + 0.25 * hash(i, j + 7)), x0 = left + (cw - w) / 2, wall = top + 6 * k, base = top + ch;
+    if (x < x0 || x > x0 + w || y < top || y > base) return -1;
+    if (y < wall) return Math.abs(x - mid) < (w / 2 + k) * (y - top) / (wall - top) ? 0.75 : -1; // the roof
+    const win = Math.max(2.4 * k, CELL * 1.5);
+    for (const wx of [x0 + w * 0.3, x0 + w * 0.7]) if (Math.abs(x - wx) < win / 2 && Math.abs(y - wall - 4 * k) < win / 2) return 0.85;
+    return 0.06;
+  };
+
+  // The station at the end of the viaduct, with a clock tower. Light falls from the left, so the right
+  // face of the tower is in shade. The clock face is clear paper; its hands are drawn over the dots.
+  const clock = () => ({ x: V1 + 50 * k, y: VY - 86 * k, r: 7 * k });
+  const station = (x: number, y: number) => {
+    const c = clock(), tw = 10 * k, top = VY - 100 * k;
+    if (Math.abs(x - c.x) < tw && y > top && y < VY) { // the tower
+      const d = Math.hypot(x - c.x, y - c.y);
+      if (d < c.r - 1.6 * k) return 0;
+      if (d < c.r) return 0.9;
+      if (y > VY - 64 * k && y < VY - 46 * k && Math.abs(x - c.x) < 2.5 * k) return 0.85; // a slit window
+      return x > c.x ? 0.34 : 0.12;
+    }
+    if (y <= top && y > top - 18 * k && Math.abs(x - c.x) < tw * (y - top + 18 * k) / (18 * k)) return 0.7; // its roof
+    if (x > V1 + 2 * k && x < V1 + 70 * k && y > VY - 32 * k && y < VY + 8 * k) { // the hall
+      if (y < VY - 27 * k) return 0.72; // cornice
+      const u = ((x - V1 - 8 * k) % (12 * k) + 12 * k) % (12 * k);
+      if (u < 5 * k && y > VY - 20 * k && y < VY + 2 * k && Math.hypot(u - 2.5 * k, Math.max(0, VY - 17.5 * k - y)) < 2.6 * k) return 0.8; // arched windows
+      return 0.1;
+    }
+    return -1;
+  };
+
+  // The train, heading right into the station: engine, tender, three coaches. lx runs back from the front.
+  // Past the station hall's far wall it is inside the station, so it is not drawn.
+  const train = (x: number, y: number) => {
+    const lx = (TF - x) / k, ly = (VY - y) / k;
+    if (x > V1 + 66 * k || lx < 0 || lx > 190 || ly < -1 || ly > 23) return -1;
+    if (lx < 36) { // the engine
+      if (lx > 8 && lx < 12 && ly < 22) return 0.92; // chimney
+      if (lx > 26) return ly < 22 ? (ly > 12 && ly < 17 && lx > 28 && lx < 34 ? 0.3 : 0.9) : -1; // cab and window
+      return ly < 16 && ly > 1 ? 0.88 : -1; // boiler
+    }
+    if (lx < 51) return lx > 37 && ly < 15 ? 0.86 : -1; // tender
+    const u = (lx - 52) % 46;
+    if (u > 44) return ly > 5 && ly < 13 ? 0.6 : -1; // the gangway between coaches
+    if (ly > 19) return ly < 21 && u > 2 && u < 42 ? 0.9 : -1; // roof
+    if (ly > 10 && ly < 15) return u % 6 < 4 ? 0.25 : 0.85; // a row of windows
+    return ly > 1 ? 0.84 : -1;
+  };
+  // Smoke from the chimney, trailing back over the coaches, lifting and billowing as it goes. It thins
+  // out as the engine goes into the station.
+  let t = 0; // seconds, for the billowing
+  const smoke = (x: number, y: number) => {
+    const fade = Math.min(1, Math.max(0, (V1 + 50 * k - TF) / (40 * k)));
+    if (!fade) return 0;
+    let sum = 0;
+    for (let i = 0; i < 11; i++) {
+      const px = TF - 10 * k - i * 13 * k - i * i * 0.6 * k, py = VY - 26 * k - i * 3.4 * k + Math.sin(i * 1.3) * 2 * k, r = (5 + i * 2.3) * k;
+      const q = ((x - px) ** 2 + (y - py) ** 2) / (r * r);
+      if (q < 2.5) sum += 0.8 * (1 - i / 11) * Math.exp(-q * 1.4);
+    }
+    return sum < 0.02 ? 0 : fade * Math.min(0.7, sum * (0.4 + 0.9 * noise(x * 0.06 / k + t * 0.4, y * 0.06 / k - t * 0.6)));
+  };
+
+  // The viaduct: a parapet over the deck, then stone arches on tall piers down to the water. Through an
+  // arch you see the hills and water behind, a little shaded; the arch ring is dark.
+  const viaduct = (x: number, y: number) => {
+    if (x < V0 || x > V1 || y < VY - 4 * k || y > WY) return -1;
+    const line = Math.max(1.6 * k, CELL * 0.9); // thin enough to read as a line, thick enough to catch a row of dots
+    if (y < VY + 3 * k) return 0.14; // parapet
+    if (y < VY + 3 * k + line) return 0.7; // the shadow under its coping
+    const u = (x - V0) % span, r = (span - pier) / 2, crown = VY + 16 * k, cx = pier / 2 + r;
+    const dx = Math.abs(u - cx), arch = dx < r ? crown + r - Math.sqrt(r * r - dx * dx) : Infinity;
+    if (y > arch + line) return -2; // inside the arch
+    if (y > arch) return 0.75; // the arch ring
+    // Pale stone, weathered, with the piers' shaded right faces a little darker.
+    return 0.08 + 0.12 * noise(x * 0.12 / k, y * 0.2 / k) + (u > span - pier / 2 ? 0.22 : 0);
+  };
+
+  // The rocky bank on the left: pale rocks with dark cracks, and a fringe of shrubs along its top.
+  const bank = (x: number, y: number) => {
+    const end = V0 + 34 * k;
+    if (x > end) return -1;
+    const top = H * 0.44 + (WY - H * 0.44) * Math.pow(Math.max(0, x / end), 1.6) + (noise(x * 0.05 / k, 8) - 0.5) * 10 * k;
+    if (y < top) return -1;
+    if (y < top + 12 * k * noise(x * 0.1 / k, 3)) return foliage(x, y, 9, 1.1);
+    const n = noise(x * 0.045 / k, y * 0.06 / k);
+    if (Math.abs(n - 0.5) < 0.035) return 0.75; // a crack
+    return 0.06 + Math.max(0, noise(x * 0.02 / k + 4, y * 0.025 / k) - 0.55) * 0.9; // shadow in the hollows
+  };
+
+  // Mist lies in the valley just above the deck, so the train stands out against the woods.
+  const mist = (y: number) => 1 - 0.7 * Math.min(1, Math.max(0, (y - VY + 44 * k) / (30 * k))) * (y < VY ? 1 : 0);
+  // Everything above the water, in three layers, so the train can move between them: what stands in front
+  // of the train (the bank, the viaduct's parapet, the station hall it runs into), the train, and what lies
+  // behind it. Smoke lies over all of it.
+  // In dark mode the dots are pale ink on a dark page, so every tone but the sky flips: pale stone becomes
+  // dense pale dots, shadows become bare page, and the scene reads as itself by moonlight.
+  let dark = false, sky = false;
+  const front = (x: number, y: number) => {
+    let d = bank(x, y);
+    if (d < 0) d = viaduct(x, y); // the parapet hides the wheels
+    if (d === -2) d = Math.min(1, behind(x, y) * 0.5 + 0.42); // seen through an arch, in its shadow
+    return d < 0 ? station(x, y) : d;
+  };
+  const compose = (x: number, y: number, pre: number, back: number, open: boolean) => {
+    const tr = pre < 0 ? train(x, y) : -1, bare = pre < 0 && tr < 0 && open; // open: sky behind, and nothing in front
+    let d = pre >= 0 ? pre : tr >= 0 ? tr : back;
+    if (dark && !bare) d = 0.85 * (1 - d);
+    // Steam is pale over the dark woods and lightly inked against the sky.
+    const s = smoke(x, y);
+    return bare ? Math.max(d, s * 0.45) : dark ? d + s * (0.85 - d) : d * (1 - s);
+  };
+  const land = (x: number, y: number) => {
+    const pre = front(x, y);
+    sky = false;
+    const back = pre < 0 ? behind(x, y) * mist(y) : 0;
+    return compose(x, y, pre, back, sky);
+  };
+  const behind = (x: number, y: number) => {
+    const t = town(x, y);
+    if (t >= 0) return t;
+    const c = cypress(x, y);
+    if (c) return c;
+    if (y > nearHill(x)) return y > WY - 2 * k ? 0.6 : foliage(x, y, 19, 1);
+    if (y > farHill(x)) return foliage(x, y, 13, 0.55);
+    sky = true;
+    return 0; // sky: the page itself
+  };
+  // The water: the scene mirrored and wavering, broken by streaks of light, fading toward the bottom.
+  const water = (x: number, y: number) => {
+    const streak = noise(x * 0.012 / k, y * 0.45 / k);
+    if (streak > 0.68) return dark ? 0.6 : 0; // a glint of light
+    const xr = x + (noise(y * 0.35 / k, 3.3) - 0.5) * 10 * k;
+    const d = land(xr, 2 * WY - y) * 0.45 * (1 - 0.5 * (y - WY) / (H - WY));
+    return streak < 0.2 ? Math.max(d, 0.3) : d;
+  };
+
+  const resize = () => {
+    const box = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    W = box.width; H = box.height; k = H / 300;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    CELL = Math.min(4.2, Math.max(2.6, H / 85));
+    WY = H * 0.84; VY = H * 0.57; V0 = W * 0.08; V1 = Math.min(W * 0.74, W - 110 * k);
+    pier = 14 * k; span = (V1 - V0) / Math.max(2, Math.round((V1 - V0) / (120 * k)));
+  };
+
+  // The hands on the station clock: the time where I am.
+  const time = new Intl.DateTimeFormat('en-US', { timeZone: canvas.dataset.tz, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' });
+  let shown = '';
+  const hands = () => {
+    const [h, m] = time.formatToParts(new Date()).filter((p) => p.type !== 'literal').map((p) => Number(p.value));
+    const c = clock();
+    ctx.lineWidth = Math.max(1.1, 1.1 * k); ctx.lineCap = 'round'; ctx.beginPath();
+    for (const [turn, len] of [[((h % 12) + m / 60) / 12, 0.5], [m / 60, 0.8]]) {
+      const a = turn * 2 * Math.PI;
+      ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.sin(a) * c.r * len, c.y - Math.cos(a) * c.r * len);
+    }
+    ctx.stroke();
+    shown = `${h}:${m}`;
+  };
+
+  // The still scene is drawn once, to a second canvas, all but a band of rows where the train and its
+  // smoke pass. For each dot in that band the layers in front of and behind the train are kept, so a frame
+  // only works out the train and the smoke there.
+  const still = document.createElement('canvas'), sctx = still.getContext('2d')!;
+  let bx: number[] = [], by: number[] = [], bpre: number[] = [], bback: number[] = [], bopen: boolean[] = [];
+  const dot = (c: CanvasRenderingContext2D, x: number, y: number, d: number) => {
+    if (d < 0.04) return; // leave the page clear
+    const r = CELL * 0.62 * Math.sqrt(Math.min(1, d));
+    c.moveTo(x + r, y); c.arc(x, y, r, 0, Math.PI * 2);
+  };
+  const build = () => {
+    dark = document.documentElement.dataset.theme === 'dark';
+    still.width = canvas.width; still.height = canvas.height;
+    sctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    sctx.fillStyle = ctx.fillStyle = ctx.strokeStyle = getComputedStyle(canvas).color; // the page's ink, in either theme
+    sctx.beginPath();
+    bx = []; by = []; bpre = []; bback = []; bopen = [];
+    const top = VY - 96 * k, bottom = VY + 4 * k; // the band: from the top of the smoke down to the deck
+    const rowH = CELL * 0.866; // offset rows: dots on a 60° screen, like a printed halftone
+    for (let j = 0, y = rowH / 2; y < H + CELL; j++, y += rowH) {
+      for (let x = (j % 2) * CELL / 2; x < W + CELL; x += CELL) {
+        if (y > top && y < bottom) {
+          const pre = front(x, y);
+          sky = false;
+          bback.push(pre < 0 ? behind(x, y) * mist(y) : 0); bopen.push(sky); bpre.push(pre); bx.push(x); by.push(y);
+        } else dot(sctx, x, y, y > WY ? water(x, y) : land(x, y));
+      }
+    }
+    sctx.fill();
+  };
+  const draw = () => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(still, 0, 0, W, H);
+    ctx.beginPath();
+    for (let i = 0; i < bx.length; i++) dot(ctx, bx[i], by[i], compose(bx[i], by[i], bpre[i], bback[i], bopen[i]));
+    ctx.fill();
+    hands();
+  };
+
+  // The run: the train comes in from the left edge, crosses the viaduct and pulls into the station until
+  // its last coach is inside, waits a moment, then the next one comes. About 25 seconds on a wide screen.
+  // With reduced motion it stands still on the viaduct, just short of the station.
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const WAIT = 3; // seconds with the line empty
+  const place = () => {
+    if (calm) { TF = V1 - 24 * k; return; }
+    const from = -10 * k, to = V1 + 66 * k + 190 * k, speed = 48 * k, run = (to - from) / speed;
+    TF = from + Math.min(t % (run + WAIT), run) * speed;
+  };
+
+  new ResizeObserver(() => { resize(); place(); build(); draw(); }).observe(canvas);
+  new MutationObserver(() => { build(); draw(); }).observe(document.documentElement, { attributeFilter: ['data-theme'] });
+  // A still train only needs a new frame when the minute changes, for the clock.
+  setInterval(() => { const [h, m] = time.formatToParts(new Date()).filter((p) => p.type !== 'literal').map((p) => Number(p.value)); if (calm && `${h}:${m}` !== shown) draw(); }, 15000);
+  if (!calm) {
+    // About 30 frames a second, only while the print is on screen and the tab is visible.
+    let visible = false, last = 0, raf = 0;
+    const loop = (now: number) => {
+      raf = 0;
+      if (!visible || document.hidden) return;
+      if (now - last >= 33) { t += Math.min(0.1, (now - (last || now)) / 1000); last = now; place(); draw(); }
+      raf = requestAnimationFrame(loop);
+    };
+    const start = () => { if (!raf) { last = 0; raf = requestAnimationFrame(loop); } };
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) start(); }).observe(canvas);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) start(); });
+  }
+</script>
+
+<style>
+  /* Full width at the foot of the page. The canvas has no background: the sky is the page. */
+  .terminus { display: block; width: 100%; height: clamp(210px, 28vw, 400px); color: var(--ink); }
+  :root[data-theme="dark"] .terminus { color: #7a756a; } /* dimmer than the text, so the print glows softly */
+</style>

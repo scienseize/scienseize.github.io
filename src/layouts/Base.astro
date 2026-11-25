@@ -1,4 +1,5 @@
 ---
+import Terminus from '../components/Terminus.astro';
 import { site } from '../site';
 // published: set for a writing post, so link previews treat it as an article.
 interface Props { title?: string; description?: string; published?: Date }
@@ -96,16 +97,13 @@ const external = (href: string) => !href.startsWith('mailto:');
 
     <main><slot /></main>
 
+    <!-- Two rows on one grid: the links and the contact icons, then the small print and the clock. -->
     <footer>
       <div class="foot-row">
         <nav aria-label="Footer">
           <a href="/">Home</a>
           {links.map((l) => <a href={l.href}>{l.label}</a>)}
         </nav>
-        <p class="clock">{site.place} · <time id="clock" data-tz={site.timeZone}></time></p>
-      </div>
-      <div class="foot-row">
-        <p>© {new Date().getFullYear()} {site.name}</p>
         <ul class="contact-icons">
           {contacts.map((c) => (
             <li><a href={c.href} aria-label={c.label} title={c.label} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>
@@ -114,7 +112,12 @@ const external = (href: string) => !href.startsWith('mailto:');
           ))}
         </ul>
       </div>
+      <div class="foot-row small">
+        <p>© {new Date().getFullYear()} {site.name}</p>
+        <p class="clock">{site.place} · <time id="clock" data-tz={site.timeZone}></time></p>
+      </div>
     </footer>
+    <Terminus />
 
     <!-- The contact rail: beside the column, centered on the screen. The icons hang on a red string that
          ends in an evidence tag. -->
@@ -142,6 +145,9 @@ const external = (href: string) => !href.startsWith('mailto:');
       };
       tick();
       setInterval(tick, 1000);
+
+      new IntersectionObserver(([e]) => document.querySelector('.rail').classList.toggle('away', e.isIntersecting))
+        .observe(document.querySelector('footer'));
 
       document.getElementById('theme').addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -292,17 +298,19 @@ const external = (href: string) => !href.startsWith('mailto:');
   .page-head h1 { margin: 10px 0 0; font: 600 clamp(36px, 9vw, 52px)/1.05 var(--display); letter-spacing: -0.03em; text-wrap: balance; }
 
   footer {
-    margin-top: 96px; padding-top: 24px; padding-bottom: 48px;
-    border-top: 1px solid var(--line); font-size: 14px;
+    margin-top: 96px; padding: 20px 16px 8px;
+    border-top: 1px solid var(--line);
   }
-  .foot-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px 24px; flex-wrap: wrap; }
-  .foot-row + .foot-row { margin-top: 20px; }
+  .foot-row { display: flex; justify-content: space-between; align-items: center; gap: 8px 24px; flex-wrap: wrap; }
+  /* The small print: the copyright and the clock, one size smaller, under a hairline. */
+  .foot-row.small { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); font: 12px var(--mono); color: var(--muted); }
   footer p { margin: 0; }
   /* The header links again, as on felixrieseberg.com. */
   footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 13px var(--mono); }
   footer nav a { text-decoration: none; color: var(--muted); }
+  footer .contact-icons { margin-inline: -8px; } /* the icons' round hit areas overhang, so the drawings line up with the text's edges, also when they wrap under the links */
   footer nav a:hover { color: var(--ink); }
-  .clock { font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .clock { font-variant-numeric: tabular-nums; }
   footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
 
   /* Contact icons. Outline drawings in the muted ink; on hover or keyboard focus they lift a little and
@@ -326,7 +334,11 @@ const external = (href: string) => !href.startsWith('mailto:');
   .rail {
     position: fixed; z-index: 40; left: calc(50% - 304px - 32px - 34px); top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: opacity 0.3s, visibility 0s;
   }
+  /* The footer carries the same icons, so the rail steps aside while the footer is on screen and does not
+     hang over the print under it. */
+  .rail.away { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s 0.3s; }
   .rail .string { position: relative; z-index: 1; width: 1.5px; height: 56px; background: var(--accent); opacity: 0.75; }
   .rail .string:first-child { height: 72px; background: linear-gradient(transparent, var(--accent)); } /* hangs from above */
   .rail .string:has(+ .evidence-tag) { height: 44px; margin-bottom: -18px; } /* runs on into the tag's hole */
