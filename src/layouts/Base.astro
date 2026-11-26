@@ -28,7 +28,7 @@ const links = [
   { href: '/photos/', label: 'Photos' },
   { href: '/resume.pdf', label: 'Resume' },
 ];
-// Contact icons, in the side rail (wide screens) and the footer (all screens): Email plus every social
+// Contacts: icons in the side rail (wide screens), text links in the footer (all screens). Email plus every social
 // with a link, in this order. Each icon is a small outline drawing on a 24 × 24 grid; a contact without
 // one shows its name instead.
 const order = ['Instagram', 'Email', 'GitHub', 'LinkedIn'];
@@ -97,19 +97,29 @@ const external = (href: string) => !href.startsWith('mailto:');
 
     <main><slot /></main>
 
-    <!-- One row: the copyright, the contact icons in the middle, and the clock. The header stays on screen,
-         so the footer does not repeat its links. -->
+    <!-- Two sides: who I am at the left (name, tagline, copyright and clock), and two link columns at the
+         right (the header's pages and the contacts, as text). On phones the columns drop under the name. -->
     <footer>
-      <div class="foot-row">
-        <p>© {new Date().getFullYear()} {site.name}</p>
-        <ul class="contact-icons">
-          {contacts.map((c) => (
-            <li><a href={c.href} aria-label={c.label} title={c.label} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>
-              {icons[c.label] ? <svg viewBox="0 0 24 24" aria-hidden="true" set:html={icons[c.label]} /> : c.label}
-            </a></li>
-          ))}
-        </ul>
-        <p class="clock">{site.place} · <time id="clock" data-tz={site.timeZone}></time></p>
+      <div class="foot">
+        <div class="foot-id">
+          <p class="foot-name">{site.name}</p>
+          <p class="foot-tag">{site.tagline}</p>
+          <p class="foot-small">© {new Date().getFullYear()} {site.name}<br />{site.place} · <time id="clock" data-tz={site.timeZone}></time></p>
+        </div>
+        <div class="foot-cols">
+          <div>
+            <h2>Pages</h2>
+            <ul>{links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}</ul>
+          </div>
+          <div>
+            <h2>Contact</h2>
+            <ul>
+              {contacts.map((c) => (
+                <li><a href={c.href} rel={external(c.href) ? 'me noopener' : undefined} target={external(c.href) ? '_blank' : undefined}>{c.label}</a></li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </footer>
     <Terminus />
@@ -299,45 +309,46 @@ const external = (href: string) => !href.startsWith('mailto:');
   .page-head h1 { margin: 10px 0 0; font: 600 clamp(36px, 9vw, 52px)/1.05 var(--display); letter-spacing: -0.03em; text-wrap: balance; }
 
   footer {
-    margin-top: 96px; padding: 20px var(--gutter) 8px;
+    margin-top: 96px; padding: 48px var(--gutter) 32px;
     border-top: 1px solid var(--line);
   }
-  /* Three columns: the copyright at the left, the icons in the middle, the clock at the right. On phones
-     they stack, centered, with the icons first. */
-  .foot-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px 24px; font: 12px var(--mono); color: var(--muted); }
+  /* The name block at the left, the link columns at the right. When the window is too narrow for both,
+     the columns wrap under the name. */
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px 64px; }
+  .foot-id { max-width: 36ch; }
   footer p { margin: 0; }
-  .clock { font-variant-numeric: tabular-nums; text-align: right; }
-  @media (max-width: 640px) {
-    .foot-row { grid-template-columns: 1fr; text-align: center; }
-    .foot-row .clock { text-align: center; }
-    footer .contact-icons { order: -1; justify-content: center; }
-  }
-  footer ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 16px; font: 13px var(--mono); }
+  .foot-name { font: 600 26px/1.2 var(--serif); letter-spacing: -0.01em; }
+  .foot-tag { margin-top: 12px; font-size: 15px; line-height: 1.55; color: var(--muted); }
+  .foot-small { margin-top: 24px; font: 12px/1.8 var(--mono); color: var(--muted); }
+  #clock { font-variant-numeric: tabular-nums; }
+  .foot-cols { display: flex; gap: 32px 72px; }
+  .foot-cols h2 { margin: 0 0 14px; font-size: 17px; }
+  footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font: 15px var(--sans); }
+  footer ul a { text-decoration: none; }
 
   /* Contact icons. Outline drawings in the muted ink; on hover or keyboard focus they lift a little and
-     take the red. The footer row shows on every screen. */
-  :is(.rail, .contact-icons) a {
+     take the red. The footer lists the same contacts as text. */
+  .rail a {
     display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); text-decoration: none;
     transition: color 0.2s, transform 0.2s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
-  :is(.rail, .contact-icons) a:is(:hover, :focus-visible) { color: var(--accent); transform: translateY(-2px); }
-  :is(.rail, .contact-icons) a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  :is(.rail, .contact-icons) svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  footer .contact-icons { gap: 6px; }
-  @media (prefers-reduced-motion: reduce) { :is(.rail, .contact-icons) a { transition: color 0.2s; } :is(.rail, .contact-icons) a:is(:hover, :focus-visible) { transform: none; } }
+  .rail a:is(:hover, :focus-visible) { color: var(--accent); transform: translateY(-2px); }
+  .rail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .rail svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  @media (prefers-reduced-motion: reduce) { .rail a { transition: color 0.2s; } .rail a:is(:hover, :focus-visible) { transform: none; } }
 
   /* The rail: fixed beside the content column, 32 px left of the text, and centered on the screen
      height, so it stays put while the page scrolls. The column is 640 px wide with 16 px padding, so the
      text starts at 50% - 304 px; the rail (34 px wide) ends 32 px before it. A red string fades in from
      above, runs past the icons, and threads through the punched hole of a small evidence tag, like the
      tags on the exhibit cards. It needs room beside the column, so below 800 px it is hidden and the
-     footer row carries the contacts alone. */
+     footer Contact column carries the contacts alone. */
   .rail {
     position: fixed; z-index: 40; left: calc(50% - 304px - 32px - 34px); top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     transition: opacity 0.3s, visibility 0s;
   }
-  /* The footer carries the same icons, so the rail steps aside while the footer is on screen and does not
+  /* The footer lists the same contacts, so the rail steps aside while the footer is on screen and does not
      hang over the print under it. */
   .rail.away { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s 0.3s; }
   .rail .string { position: relative; z-index: 1; width: 1.5px; height: 56px; background: var(--accent); opacity: 0.75; }

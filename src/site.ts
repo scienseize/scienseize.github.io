@@ -6,6 +6,8 @@ export const site = {
   // Used in the home heading, page descriptions, link previews and structured data.
   role: 'AI engineer',
   description: 'Bill C. Alcantara, an AI engineer in Manila who builds AI applications end to end, then takes them apart.',
+  // The line under the name in the footer.
+  tagline: 'AI engineer in Manila. I build AI applications end to end, then take them apart.',
   // The 1200 × 630 card shown when a link to the site is shared. Link previews (LinkedIn, Slack, X)
   // cache it by URL, so when the card changes, give the file a new name (og-v3.jpg, ...).
   image: '/og-v2.jpg',
