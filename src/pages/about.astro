@@ -271,6 +271,11 @@ let fileCount = 0;
         });
         t.replaceWith(words);
       });
+      // A link's red-pen line waits for the link's last word to be typed (see the styles).
+      block.querySelectorAll<HTMLElement>('a, [data-names]').forEach((l) => {
+        const last = [...l.querySelectorAll<HTMLElement>('.w')].pop();
+        if (last) l.style.setProperty('--i', last.style.getPropertyValue('--i'));
+      });
       block.classList.add('typing');
     });
 
@@ -440,9 +445,12 @@ let fileCount = 0;
 
   .prose { margin-top: 40px; font-size: 18px; }
   .prose :global(h2) { font-size: 24px; margin-top: 40px; }
-  /* A line that shows a photo: a dotted red underline marks it. */
-  .prose :global(a.peek), h3 a.peek { text-decoration: underline dotted var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
-  .prose :global(a.peek:hover), .prose :global(a.peek:focus-visible), h3 a.peek:is(:hover, :focus-visible) { color: var(--accent); }
+  /* Links on this page (the photo peeks too) and the word with the friends' names already carry the
+     red-pen line, as the links at the end of the home page's intro do. Hover turns the words red. */
+  .prose :global(:is(a, [data-names])), h3 a { text-decoration: none; background: var(--pen) no-repeat left bottom / 100% 6px; }
+  .prose :global(:is(a, [data-names]):is(:hover, :focus-visible)), h3 a:is(:hover, :focus-visible), .card dd a:is(:hover, :focus-visible) { color: var(--accent); }
+  /* The contact links on the card have no line at all; hover turns them red. */
+  .card dd a { text-decoration: none; background: none; }
   /* The photo, as a print taped to the page with clear tape, like the portrait. */
   .peek-card {
     position: fixed; z-index: 60; width: min(320px, calc(100vw - 24px)); margin: 0; padding: 8px 8px 10px;
@@ -468,6 +476,8 @@ let fileCount = 0;
   /* Typing on scroll (see the script): one word every 26 ms. */
   .prose :global(.typing .w) { opacity: 0; }
   .prose :global(.typed .w) { opacity: 1; transition: opacity 0.08s calc(var(--i) * 26ms); }
+  .prose :global(.typing :is(a, [data-names])) { background-size: 0% 6px; }
+  .prose :global(.typed :is(a, [data-names])) { background-size: 100% 6px; transition: background-size 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) calc(var(--i) * 26ms + 80ms); }
 
   section { margin-top: 56px; }
   section > .label { border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px; }

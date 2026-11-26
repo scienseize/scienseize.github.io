@@ -6,8 +6,8 @@ Most of my work sits where machine learning meets real users. I've built a gestu
 
 ## Outside of code
 
-<a class="peek" href="/about/palawan.webp" data-caption="Coron, Palawan · March 2025">My roots are in Palawan, and I'm a sea person at heart</a>. Give me open water and a long coastline and I'm happy; the sea is where I reset.
+My roots are in <a class="peek" href="/about/palawan.webp" data-caption="Coron, Palawan · March 2025">Palawan</a>, and I'm a sea person at heart. Give me open water and a long coastline and I'm happy; the sea is where I reset.
 
-I keep fit with calisthenics, running and basketball. Bodyweight training keeps me disciplined, long runs clear my head, and <a class="peek" href="/about/pickup.mp4" data-poster="/about/pickup-poster.webp" data-ratio="9 / 16" data-caption="Taking a shot at a Hexagames night · iACADEMY, November 19, 2026">I'm on the court for pick-up games whenever I can be</a>.
+I keep fit with calisthenics, running and basketball. Bodyweight training keeps me disciplined, long runs clear my head, and I'm on the court for <a class="peek" href="/about/pickup.mp4" data-poster="/about/pickup-poster.webp" data-ratio="9 / 16" data-caption="Taking a shot at a Hexagames night · iACADEMY, November 19, 2026">pick-up games</a> whenever I can be.
 
 The rest of the time I read mysteries, manga and manhwa. The B.C.A. in the corner is a nod to Agatha Christie's <em>The A.B.C. Murders</em>, and the train on the home page is a nod to her <em>Murder on the Orient Express</em>.
