@@ -1,4 +1,4 @@
-I work with a small team of friends at <span class="kitchen" role="img" aria-label="Kitchen"></span>. Keeper of too many side projects, open source and otherwise.
+I work with a small team of <span class="friends" data-names="Joseph, Eux">friends</span> at <span class="kitchen" role="img" aria-label="Kitchen"></span>. Keeper of too many side projects, open source and otherwise.
 
 ## Things I do
 

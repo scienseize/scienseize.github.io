@@ -283,7 +283,85 @@ let fileCount = 0;
       setTimeout(watch, intro.querySelectorAll('.w').length * 26); // 26 ms a word, as in the styles
     }, { once: true });
   }
+
+  // Red-pen notes: a word with data-names (in about.md) is circled in red pen, and an arrow runs up from
+  // the circle to each name, written by hand above the line. Hover writes them on a desktop; on a phone
+  // they write once, when the line reaches the middle of the screen. Screen readers get the names as text.
+  document.querySelectorAll<HTMLElement>('[data-names]').forEach((el) => {
+    const names = el.dataset.names!.split(',').map((n) => n.trim());
+    const ink = document.createElement('span');
+    ink.className = 'ink';
+    ink.setAttribute('aria-hidden', 'true');
+    ink.innerHTML = '<svg class="ring" viewBox="0 0 100 40" preserveAspectRatio="none"><path pathLength="1" d="M14 9C30 2 70 1 88 8C99 13 98 27 84 33C64 40 28 40 12 33C0 27 2 14 18 8C30 4 44 3 56 4"/></svg>';
+    // The names sit in one row above the word. Names left of the middle point their arrow down and right,
+    // names right of it down and left, so every arrow leans in toward the word.
+    const row = document.createElement('span');
+    row.className = 'notes';
+    names.forEach((n, i) => {
+      const note = document.createElement('span');
+      note.className = 'note';
+      note.style.cssText = `--i:${i};--s:${i < (names.length - 1) / 2 ? 1 : -1}`;
+      note.innerHTML = '<svg class="arrow" viewBox="0 0 30 26"><path pathLength="1" d="M4 3C6 12 13 19 26 22M19 24 26 22 22 16"/></svg>';
+      const hand = document.createElement('span');
+      hand.className = 'hand';
+      hand.textContent = n;
+      note.append(hand);
+      row.append(note);
+    });
+    ink.append(row);
+    const said = document.createElement('span');
+    said.className = 'unseen';
+    said.textContent = ` (${names.join(' and ')})`;
+    el.append(ink, said);
+    // Keep the row inside the text column: on a phone the word can sit at the edge of the line.
+    const box = el.closest('.prose')!;
+    const fit = () => {
+      row.style.setProperty('--dx', '0px');
+      const r = row.getBoundingClientRect(), b = box.getBoundingClientRect();
+      row.style.setProperty('--dx', `${Math.min(0, b.right - r.right) + Math.max(0, b.left - r.left)}px`);
+    };
+    document.fonts.ready.then(fit);
+    addEventListener('resize', fit);
+    if (matchMedia('(hover: hover)').matches) {
+      el.addEventListener('mouseenter', () => el.classList.add('inked'));
+      el.addEventListener('mouseleave', () => el.classList.remove('inked'));
+    } else {
+      new IntersectionObserver(([en], io) => {
+        if (!en.isIntersecting) return;
+        el.classList.add('inked');
+        io.disconnect();
+      }, { rootMargin: '-35% 0px -35% 0px' }).observe(el);
+    }
+  });
 </script>
+
+<style>
+  /* Red-pen notes (see the script). The ring draws round the word, then each arrow and name is written,
+     one name after the other. Leaving the word fades the ink out. Reduced motion shows it at once. */
+  .prose :global([data-names]) { position: relative; white-space: nowrap; }
+  .prose :global(.unseen) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .prose :global(.ink) { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+  .prose :global(.inked .ink) { opacity: 1; transition: none; }
+  .prose :global(.ink path) { fill: none; stroke: var(--accent); stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .prose :global(.ring) { position: absolute; inset: -0.3em -0.32em; width: calc(100% + 0.64em); height: calc(100% + 0.6em); overflow: visible; }
+  .prose :global(.ring path) { stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+  .prose :global(.notes) {
+    position: absolute; left: 50%; bottom: calc(100% + 1.1em); display: flex; gap: 1.6em; white-space: nowrap;
+    transform: translateX(calc(-50% + var(--dx, 0px)));
+    font: 500 1.2em/1 Caveat, cursive; color: var(--accent);
+  }
+  .prose :global(.note) { position: relative; transform: rotate(calc(var(--s) * -5deg)); }
+  .prose :global(.hand) { display: block; clip-path: inset(-0.5em 100% -0.5em -0.5em); }
+  .prose :global(.arrow) {
+    position: absolute; top: 100%; left: 50%; width: 1.4em; height: 1.2em; overflow: visible;
+    transform: translateX(calc(var(--s) * 0.5em - 50%)) scaleX(var(--s));
+  }
+  .prose :global(.arrow path) { stroke-width: 1.6; }
+  .prose :global(.inked .ring path) { stroke-dashoffset: 0; transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.3, 1); }
+  .prose :global(.inked .hand) { clip-path: inset(-0.5em -0.5em -0.5em -0.5em); transition: clip-path 0.45s linear calc(0.6s + var(--i) * 0.6s); }
+  .prose :global(.inked .arrow path) { stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s ease-out calc(0.45s + var(--i) * 0.6s); }
+  @media (prefers-reduced-motion: reduce) { .prose :global(.inked :is(.hand, path)) { transition: none; } }
+</style>
 
 <style>
 
