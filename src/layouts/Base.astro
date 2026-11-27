@@ -31,7 +31,7 @@ const links = [
 // Contacts: icons in the side rail (wide screens), text links in the footer (all screens). Email plus every social
 // with a link, in this order. Each icon is a small outline drawing on a 24 × 24 grid; a contact without
 // one shows its name instead.
-const order = ['Instagram', 'Email', 'GitHub', 'LinkedIn'];
+const order = ['Instagram', 'Email', 'GitHub', 'LinkedIn', 'X'];
 const rank = (label: string) => (order.indexOf(label) + 1) || order.length + 1;
 const contacts = [{ label: 'Email', href: `mailto:${site.email}` }, ...site.socials]
   .filter((c) => c.href)
@@ -41,6 +41,7 @@ const icons: Record<string, string> = {
   Email: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',
   GitHub: '<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>',
   LinkedIn: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 11v5M8 8v.01M12 16v-5M16 16v-3a2 2 0 0 0-4 0"/>',
+  X: '<path d="M4.5 4h4l11 16h-4z"/><path d="M19.5 4l-6.3 7.2M4.5 20l6.3-7.2"/>',
 };
 const external = (href: string) => !href.startsWith('mailto:');
 ---

@@ -53,7 +53,7 @@ export const site = {
     { label: 'Instagram', href: 'https://www.instagram.com/bbb1l7' },
     { label: 'GitHub', href: 'https://github.com/scienseize' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/billalc' },
-    { label: 'X', href: '' }, // TODO
+    { label: 'X', href: 'https://x.com/scienseize' },
   ],
 };
 
